@@ -123,7 +123,7 @@ To integrate this MCP server with Roo, add the following configuration to `.roo/
 ```json
 {
   "mcpServers": {
-    "sparc2-mcp": {
+    "vsc-remote-mcp": {
       "command": "node",
       "args": [
         "vscode-remote-mcp/run-mcp-server.js"

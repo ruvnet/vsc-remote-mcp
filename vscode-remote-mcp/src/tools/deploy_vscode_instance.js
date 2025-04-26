@@ -1,6 +1,6 @@
 /**
  * Deploy VSCode Instance Tool
- * 
+ *
  * This tool deploys a new VSCode instance using Docker.
  */
 
@@ -10,6 +10,7 @@ const { promisify } = require('util');
 const { exec } = require('child_process');
 const execAsync = promisify(exec);
 const { v4: uuidv4 } = require('uuid');
+const net = require('net');
 
 // Load environment variables
 const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || 'changeme';
@@ -32,20 +33,32 @@ const DEFAULT_MEMORY_LIMIT = process.env.DEFAULT_MEMORY_LIMIT || '2g';
  */
 async function deployVSCodeInstance(params) {
   if (!params.name) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'name parameter is required' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: name parameter is required'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'name parameter is required'
+      }
     };
   }
 
   if (!params.workspace_path) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'workspace_path parameter is required' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: workspace_path parameter is required'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'workspace_path parameter is required'
+      }
     };
   }
 
@@ -61,16 +74,47 @@ async function deployVSCodeInstance(params) {
     try {
       await fs.access(workspacePath);
     } catch (error) {
-      return { 
-        error: { 
-          code: -32602, 
-          message: `Workspace path not found: ${workspacePath}` 
-        } 
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: Workspace path not found: ${workspacePath}`
+          }
+        ],
+        error: {
+          code: -32602,
+          message: `Workspace path not found: ${workspacePath}`
+        }
       };
     }
     
-    // Get random port if not specified
-    const port = params.port || await getRandomPort();
+    // Check if port is specified and available
+    let port = params.port;
+    if (port) {
+      const isPortAvailable = await checkPortAvailability(port);
+      if (!isPortAvailable) {
+        // Find an alternative port if the requested one is not available
+        const alternativePort = await getRandomPort();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Port ${port} is already in use. Consider using port ${alternativePort} instead.`
+            }
+          ],
+          error: {
+            code: -32603,
+            message: `Port ${port} is already in use`,
+            details: {
+              suggested_port: alternativePort
+            }
+          }
+        };
+      }
+    } else {
+      // Get random port if not specified
+      port = await getRandomPort();
+    }
     
     // Get password
     const password = params.password || DEFAULT_PASSWORD;
@@ -110,8 +154,53 @@ async function deployVSCodeInstance(params) {
     // Build Docker command
     const dockerCommand = buildDockerCommand(instanceName, workspacePath, port, password, extensions, cpuLimit, memoryLimit, environment);
     
-    // Execute Docker command
-    await execAsync(dockerCommand);
+    try {
+      // Execute Docker command
+      await execAsync(dockerCommand);
+    } catch (error) {
+      // Handle Docker-specific errors
+      if (error.message.includes('port is already allocated')) {
+        // Clean up the config file we created
+        try {
+          await fs.unlink(configPath);
+        } catch (unlinkError) {
+          console.error(`Failed to clean up config file: ${unlinkError.message}`);
+        }
+        
+        // Find an alternative port
+        const alternativePort = await getRandomPort();
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Port ${port} is already allocated. Consider using port ${alternativePort} instead.`
+            }
+          ],
+          error: {
+            code: -32603,
+            message: `Port ${port} is already allocated`,
+            details: {
+              suggested_port: alternativePort
+            }
+          }
+        };
+      }
+      
+      // Other Docker errors
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error deploying Docker container: ${error.message}`
+          }
+        ],
+        error: {
+          code: -32603,
+          message: `Failed to deploy Docker container: ${error.message}`
+        }
+      };
+    }
     
     // Wait for container to start
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -120,15 +209,28 @@ async function deployVSCodeInstance(params) {
     const { stdout: containerStatus } = await execAsync(`docker ps --filter "name=${instanceName}" --format "{{.Status}}"`);
     
     if (!containerStatus.trim()) {
-      return { 
-        error: { 
-          code: -32603, 
-          message: 'Failed to start VSCode instance' 
-        } 
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'Error: Failed to start VSCode instance'
+          }
+        ],
+        error: {
+          code: -32603,
+          message: 'Failed to start VSCode instance'
+        }
       };
     }
     
+    // Success response with content array
     return {
+      content: [
+        {
+          type: 'text',
+          text: `VSCode instance deployed successfully!\n\nName: ${params.name}\nInstance ID: ${instanceId}\nURL: http://localhost:${port}\nStatus: running\nWorkspace: ${workspacePath}`
+        }
+      ],
       id: instanceId,
       name: params.name,
       instance_name: instanceName,
@@ -139,11 +241,17 @@ async function deployVSCodeInstance(params) {
     };
   } catch (error) {
     console.error(`Error in deployVSCodeInstance: ${error.message}`);
-    return { 
-      error: { 
-        code: -32603, 
-        message: `Failed to deploy VSCode instance: ${error.message}` 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: Failed to deploy VSCode instance: ${error.message}`
+        }
+      ],
+      error: {
+        code: -32603,
+        message: `Failed to deploy VSCode instance: ${error.message}`
+      }
     };
   }
 }
@@ -186,6 +294,36 @@ function buildDockerCommand(instanceName, workspacePath, port, password, extensi
 }
 
 /**
+ * Check if a port is available
+ * @param {number} port - Port to check
+ * @returns {Promise<boolean>} True if port is available, false otherwise
+ */
+function checkPortAvailability(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    
+    server.once('error', (err) => {
+      // Port is in use
+      if (err.code === 'EADDRINUSE') {
+        resolve(false);
+      } else {
+        // Some other error, assume port is available
+        resolve(true);
+      }
+      server.close();
+    });
+    
+    server.once('listening', () => {
+      // Port is available
+      server.close();
+      resolve(true);
+    });
+    
+    server.listen(port, '0.0.0.0');
+  });
+}
+
+/**
  * Get a random available port
  * @returns {Promise<number>} Random port
  */
@@ -193,17 +331,19 @@ async function getRandomPort() {
   // Get a random port between 10000 and 65535
   const minPort = 10000;
   const maxPort = 65535;
-  const port = Math.floor(Math.random() * (maxPort - minPort + 1)) + minPort;
+  const maxAttempts = 10;
   
-  try {
-    // Check if port is in use
-    await execAsync(`nc -z localhost ${port}`);
-    // Port is in use, try another one
-    return getRandomPort();
-  } catch (error) {
-    // Port is available
-    return port;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const port = Math.floor(Math.random() * (maxPort - minPort + 1)) + minPort;
+    const isAvailable = await checkPortAvailability(port);
+    
+    if (isAvailable) {
+      return port;
+    }
   }
+  
+  // If we couldn't find an available port after maxAttempts, throw an error
+  throw new Error('Could not find an available port after multiple attempts');
 }
 
 module.exports = deployVSCodeInstance;

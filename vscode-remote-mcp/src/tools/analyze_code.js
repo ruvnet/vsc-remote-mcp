@@ -22,11 +22,17 @@ const execAsync = promisify(exec);
  */
 async function analyzeCode(params) {
   if (!params.file_path) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'file_path parameter is required' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: file_path parameter is required'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'file_path parameter is required'
+      }
     };
   }
 
@@ -37,11 +43,17 @@ async function analyzeCode(params) {
     try {
       await fs.access(filePath);
     } catch (error) {
-      return { 
-        error: { 
-          code: -32602, 
-          message: `File not found: ${filePath}` 
-        } 
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: File not found: ${filePath}`
+          }
+        ],
+        error: {
+          code: -32602,
+          message: `File not found: ${filePath}`
+        }
       };
     }
     
@@ -138,11 +150,17 @@ async function analyzeCode(params) {
     };
   } catch (error) {
     console.error(`Error in analyzeCode: ${error.message}`);
-    return { 
-      error: { 
-        code: -32603, 
-        message: `Failed to analyze code: ${error.message}` 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: Failed to analyze code: ${error.message}`
+        }
+      ],
+      error: {
+        code: -32603,
+        message: `Failed to analyze code: ${error.message}`
+      }
     };
   }
 }

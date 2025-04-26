@@ -20,20 +20,32 @@ const execAsync = promisify(exec);
  */
 async function manageJobResources(params) {
   if (!params.job_id) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'job_id parameter is required' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: job_id parameter is required'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'job_id parameter is required'
+      }
     };
   }
 
   if (!params.operation) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'operation parameter is required' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: operation parameter is required'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'operation parameter is required'
+      }
     };
   }
 
@@ -62,20 +74,32 @@ async function manageJobResources(params) {
         return await getResourceStatus(resourceFilePath, params);
         
       default:
-        return { 
-          error: { 
-            code: -32602, 
-            message: `Invalid operation: ${params.operation}` 
-          } 
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Invalid operation: ${params.operation}`
+            }
+          ],
+          error: {
+            code: -32602,
+            message: `Invalid operation: ${params.operation}`
+          }
         };
     }
   } catch (error) {
     console.error(`Error in manageJobResources: ${error.message}`);
-    return { 
-      error: { 
-        code: -32603, 
-        message: `Failed to manage job resources: ${error.message}` 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: Failed to manage job resources: ${error.message}`
+        }
+      ],
+      error: {
+        code: -32603,
+        message: `Failed to manage job resources: ${error.message}`
+      }
     };
   }
 }
@@ -92,11 +116,17 @@ async function allocateResources(resourceFilePath, params) {
     await fs.access(resourceFilePath);
     
     // Resources already allocated
-    return { 
-      error: { 
-        code: -32602, 
-        message: `Resources already allocated for job ${params.job_id}` 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: Resources already allocated for job ${params.job_id}`
+        }
+      ],
+      error: {
+        code: -32602,
+        message: `Resources already allocated for job ${params.job_id}`
+      }
     };
   } catch (error) {
     // Resources not allocated yet
@@ -104,11 +134,17 @@ async function allocateResources(resourceFilePath, params) {
   
   // Check if resources are specified
   if (!params.resources) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'resources parameter is required for allocate operation' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: resources parameter is required for allocate operation'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'resources parameter is required for allocate operation'
+      }
     };
   }
   
@@ -128,6 +164,12 @@ async function allocateResources(resourceFilePath, params) {
   await fs.writeFile(resourceFilePath, JSON.stringify(allocation, null, 2));
   
   return {
+    content: [
+      {
+        type: 'text',
+        text: `Resources allocated successfully for job ${params.job_id}\nCPU: ${allocation.resources.cpu}\nMemory: ${allocation.resources.memory}\nDisk: ${allocation.resources.disk}\nAllocated at: ${allocation.allocated_at}`
+      }
+    ],
     job_id: params.job_id,
     operation: 'allocate',
     status: 'success',
@@ -148,11 +190,17 @@ async function deallocateResources(resourceFilePath, params) {
     await fs.access(resourceFilePath);
   } catch (error) {
     // Resources not allocated
-    return { 
-      error: { 
-        code: -32602, 
-        message: `Resources not allocated for job ${params.job_id}` 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: Resources not allocated for job ${params.job_id}`
+        }
+      ],
+      error: {
+        code: -32602,
+        message: `Resources not allocated for job ${params.job_id}`
+      }
     };
   }
   
@@ -171,6 +219,12 @@ async function deallocateResources(resourceFilePath, params) {
   await fs.unlink(resourceFilePath);
   
   return {
+    content: [
+      {
+        type: 'text',
+        text: `Resources deallocated successfully for job ${params.job_id}\nDeallocated at: ${allocation.deallocated_at}`
+      }
+    ],
     job_id: params.job_id,
     operation: 'deallocate',
     status: 'success',
@@ -190,21 +244,33 @@ async function updateResources(resourceFilePath, params) {
     await fs.access(resourceFilePath);
   } catch (error) {
     // Resources not allocated
-    return { 
-      error: { 
-        code: -32602, 
-        message: `Resources not allocated for job ${params.job_id}` 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: Resources not allocated for job ${params.job_id}`
+        }
+      ],
+      error: {
+        code: -32602,
+        message: `Resources not allocated for job ${params.job_id}`
+      }
     };
   }
   
   // Check if resources are specified
   if (!params.resources) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'resources parameter is required for update operation' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: resources parameter is required for update operation'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'resources parameter is required for update operation'
+      }
     };
   }
   
@@ -227,6 +293,12 @@ async function updateResources(resourceFilePath, params) {
   await fs.writeFile(resourceFilePath, JSON.stringify(allocation, null, 2));
   
   return {
+    content: [
+      {
+        type: 'text',
+        text: `Resources updated successfully for job ${params.job_id}\nCPU: ${allocation.resources.cpu}\nMemory: ${allocation.resources.memory}\nDisk: ${allocation.resources.disk}\nUpdated at: ${allocation.updated_at}`
+      }
+    ],
     job_id: params.job_id,
     operation: 'update',
     status: 'success',
@@ -248,6 +320,12 @@ async function getResourceStatus(resourceFilePath, params) {
   } catch (error) {
     // Resources not allocated
     return {
+      content: [
+        {
+          type: 'text',
+          text: `Resources not allocated for job ${params.job_id}`
+        }
+      ],
       job_id: params.job_id,
       status: 'not_allocated'
     };
@@ -306,7 +384,21 @@ async function getResourceStatus(resourceFilePath, params) {
     console.error(`Error getting resource usage: ${error.message}`);
   }
   
+  // Format usage information for display
+  let usageText = '';
+  if (usage) {
+    usageText = `\nCurrent Usage:\n  CPU: ${usage.cpu_usage}\n  Memory: ${usage.memory_usage}`;
+  } else {
+    usageText = '\nUsage information not available';
+  }
+
   return {
+    content: [
+      {
+        type: 'text',
+        text: `Resource Status for job ${params.job_id}:\nStatus: ${allocation.status}\nCPU: ${allocation.resources.cpu}\nMemory: ${allocation.resources.memory}\nDisk: ${allocation.resources.disk}\nAllocated at: ${allocation.allocated_at}${allocation.updated_at ? '\nLast updated: ' + allocation.updated_at : ''}${usageText}`
+      }
+    ],
     job_id: params.job_id,
     status: allocation.status,
     resources: allocation.resources,

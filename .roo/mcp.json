@@ -1,0 +1,41 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "test-test"
+      ],
+      "alwaysAllow": [
+        "list_tables",
+        "execute_sql",
+        "listTables",
+        "list_projects",
+        "list_organizations",
+        "get_organization",
+        "apply_migration",
+        "get_project",
+        "execute_query",
+        "generate_typescript_types",
+        "listProjects"
+      ]
+    },
+    "sparc2-mcp": {
+      "command": "node",
+      "args": [
+        "vscode-remote-mcp/run-mcp-server.js"
+      ],
+      "alwaysAllow": [
+        "analyze_code",
+        "modify_code",
+        "search_code",
+        "deploy_vscode_instance",
+        "list_vscode_instances",
+        "stop_vscode_instance",
+        "manage_job_resources"
+      ]
+    }
+  }
+}

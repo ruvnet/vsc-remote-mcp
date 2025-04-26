@@ -1,0 +1,25 @@
+services:
+  vscode-roo:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - vscode-data:/home/coder/.config
+      - vscode-extensions:/home/coder/.local/share/code-server/extensions
+      - ./workspace:/home/coder/workspace
+    environment:
+      - PASSWORD=changeme
+      - EXTENSIONS=  # Additional extensions can be specified here
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  vscode-data:
+  vscode-extensions:

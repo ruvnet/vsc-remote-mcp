@@ -1,0 +1,287 @@
+{
+  "version": "1.0",
+  "messageTypes": {
+    "connection": {
+      "description": "Connection request from client to server",
+      "fields": {
+        "clientId": {
+          "type": "string",
+          "required": true,
+          "description": "Unique identifier for the client"
+        },
+        "workspaceId": {
+          "type": "string",
+          "required": true,
+          "description": "Identifier for the workspace"
+        },
+        "clientVersion": {
+          "type": "string",
+          "required": false,
+          "description": "Version of the client"
+        }
+      }
+    },
+    "connection_ack": {
+      "description": "Connection acknowledgment from server to client",
+      "fields": {
+        "status": {
+          "type": "string",
+          "required": true,
+          "enum": ["accepted", "rejected"],
+          "description": "Status of the connection request"
+        },
+        "serverId": {
+          "type": "string",
+          "required": true,
+          "description": "Unique identifier for the server"
+        },
+        "serverVersion": {
+          "type": "string",
+          "required": false,
+          "description": "Version of the server"
+        },
+        "message": {
+          "type": "string",
+          "required": false,
+          "description": "Optional message from the server"
+        }
+      }
+    },
+    "session_create": {
+      "description": "Session creation request from client to server",
+      "fields": {
+        "sessionId": {
+          "type": "string",
+          "required": true,
+          "description": "Unique identifier for the session"
+        },
+        "createdBy": {
+          "type": "string",
+          "required": true,
+          "description": "Client ID of the session creator"
+        },
+        "workspaceId": {
+          "type": "string",
+          "required": true,
+          "description": "Workspace ID for the session"
+        },
+        "metadata": {
+          "type": "object",
+          "required": false,
+          "description": "Additional metadata for the session"
+        }
+      }
+    },
+    "session_create_ack": {
+      "description": "Session creation acknowledgment from server to client",
+      "fields": {
+        "sessionId": {
+          "type": "string",
+          "required": true,
+          "description": "Unique identifier for the session"
+        },
+        "status": {
+          "type": "string",
+          "required": true,
+          "enum": ["created", "rejected"],
+          "description": "Status of the session creation request"
+        },
+        "message": {
+          "type": "string",
+          "required": false,
+          "description": "Optional message from the server"
+        }
+      }
+    },
+    "session_join": {
+      "description": "Session join request from client to server",
+      "fields": {
+        "sessionId": {
+          "type": "string",
+          "required": true,
+          "description": "Unique identifier for the session"
+        },
+        "clientId": {
+          "type": "string",
+          "required": true,
+          "description": "Client ID of the joining client"
+        },
+        "workspaceId": {
+          "type": "string",
+          "required": true,
+          "description": "Workspace ID for the session"
+        }
+      }
+    },
+    "session_join_ack": {
+      "description": "Session join acknowledgment from server to client",
+      "fields": {
+        "sessionId": {
+          "type": "string",
+          "required": true,
+          "description": "Unique identifier for the session"
+        },
+        "status": {
+          "type": "string",
+          "required": true,
+          "enum": ["joined", "rejected"],
+          "description": "Status of the session join request"
+        },
+        "participants": {
+          "type": "array",
+          "required": false,
+          "description": "List of participants in the session"
+        },
+        "message": {
+          "type": "string",
+          "required": false,
+          "description": "Optional message from the server"
+        }
+      }
+    },
+    "token_refresh": {
+      "description": "Token refresh request from client to server",
+      "fields": {
+        "clientId": {
+          "type": "string",
+          "required": true,
+          "description": "Client ID requesting token refresh"
+        },
+        "newToken": {
+          "type": "string",
+          "required": true,
+          "description": "New authentication token"
+        }
+      }
+    },
+    "token_refresh_ack": {
+      "description": "Token refresh acknowledgment from server to client",
+      "fields": {
+        "status": {
+          "type": "string",
+          "required": true,
+          "enum": ["accepted", "rejected"],
+          "description": "Status of the token refresh request"
+        },
+        "expiresAt": {
+          "type": "string",
+          "required": false,
+          "description": "Expiration timestamp for the new token"
+        },
+        "message": {
+          "type": "string",
+          "required": false,
+          "description": "Optional message from the server"
+        }
+      }
+    },
+    "error": {
+      "description": "Error message from server to client",
+      "fields": {
+        "code": {
+          "type": "string",
+          "required": true,
+          "description": "Error code"
+        },
+        "message": {
+          "type": "string",
+          "required": true,
+          "description": "Error message"
+        },
+        "relatedTo": {
+          "type": "string",
+          "required": true,
+          "description": "ID of the message that caused the error"
+        },
+        "fatal": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Whether this is a fatal error"
+        },
+        "category": {
+          "type": "string",
+          "required": false,
+          "description": "Error category"
+        },
+        "details": {
+          "type": "object",
+          "required": false,
+          "description": "Additional error details"
+        },
+        "recoveryAction": {
+          "type": "string",
+          "required": false,
+          "description": "Suggested recovery action"
+        }
+      }
+    },
+    "notification": {
+      "description": "Notification message from server to client",
+      "fields": {
+        "message": {
+          "type": "string",
+          "required": true,
+          "description": "Notification message"
+        },
+        "level": {
+          "type": "string",
+          "required": false,
+          "enum": ["info", "warning", "error"],
+          "default": "info",
+          "description": "Notification level"
+        },
+        "timestamp": {
+          "type": "string",
+          "required": true,
+          "description": "Timestamp of the notification"
+        },
+        "source": {
+          "type": "string",
+          "required": false,
+          "description": "Source of the notification"
+        },
+        "details": {
+          "type": "object",
+          "required": false,
+          "description": "Additional notification details"
+        }
+      }
+    },
+    "disconnect": {
+      "description": "Disconnect message from client to server",
+      "fields": {
+        "clientId": {
+          "type": "string",
+          "required": true,
+          "description": "Client ID disconnecting"
+        },
+        "reason": {
+          "type": "string",
+          "required": false,
+          "description": "Reason for disconnection"
+        }
+      }
+    },
+    "server_shutdown": {
+      "description": "Server shutdown notification from server to client",
+      "fields": {
+        "reason": {
+          "type": "string",
+          "required": false,
+          "description": "Reason for shutdown"
+        },
+        "shutdownTime": {
+          "type": "string",
+          "required": true,
+          "description": "Timestamp when the server will shut down"
+        },
+        "estimatedDowntime": {
+          "type": "number",
+          "required": false,
+          "description": "Estimated downtime in minutes"
+        }
+      }
+    }
+  }
+}

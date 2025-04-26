@@ -1,0 +1,33 @@
+{
+  "name": "roo-extension-runner",
+  "displayName": "Roo Extension Runner",
+  "description": "Run Roo extension commands from the command line",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:rooExtensionRunner.runCommand"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "rooExtensionRunner.runCommand",
+        "title": "Run Roo Command"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.60.0",
+    "eslint": "^8.1.0"
+  }
+}

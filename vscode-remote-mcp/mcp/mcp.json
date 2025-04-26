@@ -1,0 +1,203 @@
+{
+  "version": "1.0",
+  "server": {
+    "host": "localhost",
+    "port": 3001,
+    "authEnabled": false,
+    "logLevel": "info",
+    "maxClients": 10,
+    "tokenExpirationSeconds": 3600
+  },
+  "tools": [
+    {
+      "name": "file_operations",
+      "description": "Perform file operations like reading, writing, and listing files",
+      "methods": [
+        {
+          "name": "read_file",
+          "description": "Read the contents of a file",
+          "parameters": {
+            "path": {
+              "type": "string",
+              "description": "Path to the file to read"
+            }
+          },
+          "returns": {
+            "type": "string",
+            "description": "Contents of the file"
+          }
+        },
+        {
+          "name": "write_file",
+          "description": "Write content to a file",
+          "parameters": {
+            "path": {
+              "type": "string",
+              "description": "Path to the file to write"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content to write to the file"
+            }
+          },
+          "returns": {
+            "type": "boolean",
+            "description": "True if the write was successful"
+          }
+        },
+        {
+          "name": "list_files",
+          "description": "List files in a directory",
+          "parameters": {
+            "path": {
+              "type": "string",
+              "description": "Path to the directory to list"
+            },
+            "recursive": {
+              "type": "boolean",
+              "description": "Whether to list files recursively",
+              "default": false
+            }
+          },
+          "returns": {
+            "type": "array",
+            "description": "Array of file paths"
+          }
+        }
+      ]
+    },
+    {
+      "name": "code_analysis",
+      "description": "Analyze code for patterns, issues, and structure",
+      "methods": [
+        {
+          "name": "analyze_code",
+          "description": "Analyze code for patterns and issues",
+          "parameters": {
+            "code": {
+              "type": "string",
+              "description": "Code to analyze"
+            },
+            "language": {
+              "type": "string",
+              "description": "Programming language of the code",
+              "default": "javascript"
+            }
+          },
+          "returns": {
+            "type": "object",
+            "description": "Analysis results"
+          }
+        },
+        {
+          "name": "find_references",
+          "description": "Find references to a symbol in the codebase",
+          "parameters": {
+            "symbol": {
+              "type": "string",
+              "description": "Symbol to find references for"
+            },
+            "path": {
+              "type": "string",
+              "description": "Path to search in",
+              "default": "."
+            }
+          },
+          "returns": {
+            "type": "array",
+            "description": "Array of references"
+          }
+        }
+      ]
+    },
+    {
+      "name": "terminal",
+      "description": "Execute commands in the terminal",
+      "methods": [
+        {
+          "name": "execute_command",
+          "description": "Execute a command in the terminal",
+          "parameters": {
+            "command": {
+              "type": "string",
+              "description": "Command to execute"
+            },
+            "cwd": {
+              "type": "string",
+              "description": "Working directory for the command",
+              "default": "."
+            }
+          },
+          "returns": {
+            "type": "object",
+            "description": "Command execution results"
+          }
+        }
+      ]
+    },
+    {
+      "name": "error_handler",
+      "description": "Handle errors and provide recovery strategies",
+      "methods": [
+        {
+          "name": "create_error_message",
+          "description": "Create a standardized error message",
+          "parameters": {
+            "code": {
+              "type": "string",
+              "description": "Error code"
+            },
+            "message": {
+              "type": "string",
+              "description": "Error message"
+            },
+            "fatal": {
+              "type": "boolean",
+              "description": "Whether this is a fatal error",
+              "default": false
+            }
+          },
+          "returns": {
+            "type": "object",
+            "description": "Formatted error message"
+          }
+        },
+        {
+          "name": "get_recovery_action",
+          "description": "Get a recovery action for an error",
+          "parameters": {
+            "error": {
+              "type": "object",
+              "description": "Error object"
+            }
+          },
+          "returns": {
+            "type": "string",
+            "description": "Recovery action"
+          }
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "name": "error_codes",
+      "description": "Error codes and their descriptions",
+      "uri": "resource://error-codes",
+      "type": "json"
+    },
+    {
+      "name": "message_types",
+      "description": "Message types for communication",
+      "uri": "resource://message-types",
+      "type": "json"
+    }
+  ],
+  "security": {
+    "allowedOrigins": ["http://localhost:*"],
+    "rateLimiting": {
+      "enabled": true,
+      "maxRequestsPerMinute": 60
+    }
+  }
+}

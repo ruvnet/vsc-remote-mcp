@@ -1,0 +1,15 @@
+# VS Code Environment Variables
+# This file contains environment variables for the VS Code Docker instance
+
+# API Keys
+OPENAI_API_KEY=sk-your-openai-api-key-here
+GITHUB_TOKEN=ghp-your-github-token-here
+
+# Project Configuration
+PROJECT_NAME=vscode-remote-demo
+DEBUG_MODE=true
+LOG_LEVEL=info
+
+# Extension Settings
+ROO_EXTENSION_ENABLED=true
+ROO_MODEL=claude-3-7-sonnet-latest

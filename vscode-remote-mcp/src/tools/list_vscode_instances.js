@@ -33,7 +33,15 @@ async function listVSCodeInstances(params) {
     try {
       files = await fs.readdir(instancesDir);
     } catch (error) {
-      return { instances: [] };
+      return {
+        content: [
+          {
+            type: 'text',
+            text: 'No instances found.'
+          }
+        ],
+        instances: []
+      };
     }
     
     // Filter JSON files
@@ -125,7 +133,39 @@ async function listVSCodeInstances(params) {
       }
     }
     
+    // Format output for display
+    let output = `VSCode Instances\n\n`;
+    output += `Total Instances: ${instances.length}\n`;
+    output += `Filter: ${filter || 'None'}\n`;
+    output += `Status: ${status}\n\n`;
+    
+    if (instances.length > 0) {
+      instances.forEach((instance, index) => {
+        output += `Instance ${index + 1}: ${instance.name}\n`;
+        output += `  ID: ${instance.id}\n`;
+        output += `  Status: ${instance.status}\n`;
+        output += `  Workspace: ${instance.workspace_path}\n`;
+        
+        if (instance.status === 'running') {
+          output += `  URL: ${instance.url}\n`;
+          output += `  Port: ${instance.port}\n`;
+          output += `  CPU Usage: ${instance.cpu_usage}\n`;
+          output += `  Memory Usage: ${instance.memory_usage}\n`;
+        }
+        
+        output += `  Created: ${instance.created_at}\n\n`;
+      });
+    } else {
+      output += 'No instances found.\n';
+    }
+    
     return {
+      content: [
+        {
+          type: 'text',
+          text: output
+        }
+      ],
       instances,
       count: instances.length,
       filter,
@@ -133,11 +173,17 @@ async function listVSCodeInstances(params) {
     };
   } catch (error) {
     console.error(`Error in listVSCodeInstances: ${error.message}`);
-    return { 
-      error: { 
-        code: -32603, 
-        message: `Failed to list VSCode instances: ${error.message}` 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: Failed to list VSCode instances: ${error.message}`
+        }
+      ],
+      error: {
+        code: -32603,
+        message: `Failed to list VSCode instances: ${error.message}`
+      }
     };
   }
 }

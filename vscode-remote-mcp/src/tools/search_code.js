@@ -24,11 +24,17 @@ const execAsync = promisify(exec);
  */
 async function searchCode(params) {
   if (!params.pattern) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'pattern parameter is required' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: pattern parameter is required'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'pattern parameter is required'
+      }
     };
   }
 

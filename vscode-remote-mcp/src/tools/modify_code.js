@@ -21,20 +21,32 @@ const path = require('path');
  */
 async function modifyCode(params) {
   if (!params.file_path) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'file_path parameter is required' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: file_path parameter is required'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'file_path parameter is required'
+      }
     };
   }
 
   if (!params.operation) {
-    return { 
-      error: { 
-        code: -32602, 
-        message: 'operation parameter is required' 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Error: operation parameter is required'
+        }
+      ],
+      error: {
+        code: -32602,
+        message: 'operation parameter is required'
+      }
     };
   }
 
@@ -45,11 +57,17 @@ async function modifyCode(params) {
     try {
       await fs.access(filePath);
     } catch (error) {
-      return { 
-        error: { 
-          code: -32602, 
-          message: `File not found: ${filePath}` 
-        } 
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: File not found: ${filePath}`
+          }
+        ],
+        error: {
+          code: -32602,
+          message: `File not found: ${filePath}`
+        }
       };
     }
     
@@ -101,29 +119,53 @@ async function modifyCode(params) {
         break;
         
       default:
-        return { 
-          error: { 
-            code: -32602, 
-            message: `Invalid operation: ${params.operation}` 
-          } 
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Error: Invalid operation: ${params.operation}`
+            }
+          ],
+          error: {
+            code: -32602,
+            message: `Invalid operation: ${params.operation}`
+          }
         };
     }
     
     // Write modified content back to file
     await fs.writeFile(filePath, modifiedContent.join('\n'));
     
+    // Format output for display
+    let output = `Code Modification Results\n\n`;
+    output += `File: ${filePath}\n`;
+    output += `Operation: ${params.operation}\n`;
+    output += `Modification Details: ${JSON.stringify(modificationDetails, null, 2)}\n`;
+    
     return {
+      content: [
+        {
+          type: 'text',
+          text: output
+        }
+      ],
       success: true,
       file_path: filePath,
       modification: modificationDetails
     };
   } catch (error) {
     console.error(`Error in modifyCode: ${error.message}`);
-    return { 
-      error: { 
-        code: -32603, 
-        message: `Failed to modify code: ${error.message}` 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: Failed to modify code: ${error.message}`
+        }
+      ],
+      error: {
+        code: -32603,
+        message: `Failed to modify code: ${error.message}`
+      }
     };
   }
 }

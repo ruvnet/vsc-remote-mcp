@@ -74,7 +74,46 @@ async function searchCode(params) {
     // Parse results
     const results = parseGrepResults(stdout, contextLines, maxResults);
     
+    // Format output for display
+    let output = `Search Results for "${params.pattern}"\n\n`;
+    output += `Directory: ${directory}\n`;
+    output += `File Pattern: ${filePattern}\n`;
+    output += `Results Found: ${results.length}\n\n`;
+    
+    if (results.length > 0) {
+      results.forEach((result, index) => {
+        output += `Match ${index + 1}: ${result.file}:${result.line}\n`;
+        
+        // Add lines before
+        if (result.lines_before && result.lines_before.length > 0) {
+          result.lines_before.forEach(line => {
+            output += `  ${line.line}: ${line.content}\n`;
+          });
+        }
+        
+        // Add the matching line
+        output += `> ${result.line}: ${result.content}\n`;
+        
+        // Add lines after
+        if (result.lines_after && result.lines_after.length > 0) {
+          result.lines_after.forEach(line => {
+            output += `  ${line.line}: ${line.content}\n`;
+          });
+        }
+        
+        output += '\n';
+      });
+    } else {
+      output += 'No matches found.\n';
+    }
+    
     return {
+      content: [
+        {
+          type: 'text',
+          text: output
+        }
+      ],
       pattern: params.pattern,
       directory,
       file_pattern: filePattern,
@@ -86,6 +125,12 @@ async function searchCode(params) {
     // If grep doesn't find anything, it returns with exit code 1
     if (error.code === 1 && error.stdout === '') {
       return {
+        content: [
+          {
+            type: 'text',
+            text: `Search Results for "${params.pattern}"\n\nNo matches found.`
+          }
+        ],
         pattern: params.pattern,
         directory: params.directory || '.',
         file_pattern: params.file_pattern || '*',
@@ -93,11 +138,17 @@ async function searchCode(params) {
       };
     }
     
-    return { 
-      error: { 
-        code: -32603, 
-        message: `Failed to search code: ${error.message}` 
-      } 
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error searching for "${params.pattern}": ${error.message}`
+        }
+      ],
+      error: {
+        code: -32603,
+        message: `Failed to search code: ${error.message}`
+      }
     };
   }
 }

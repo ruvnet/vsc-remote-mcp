@@ -1,7 +1,7 @@
 {
   "name": "vsc-remote",
-  "version": "1.2.0",
-  "description": "VSCode Remote MCP Server as an NPX package",
+  "version": "1.0.0",
+  "description": "VSCode Remote MCP Server - Connect to VSCode instances remotely using the Model Context Protocol",
   "main": "src/index.js",
   "bin": {
     "vsc-remote": "./bin/vsc-remote.js"
@@ -22,10 +22,21 @@
     "mcp",
     "remote",
     "docker",
-    "cli"
+    "cli",
+    "model-context-protocol",
+    "ai",
+    "development"
   ],
-  "author": "Edge Agents",
+  "author": "rUv",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/vsc-remote-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ruvnet/vsc-remote-mcp/issues"
+  },
+  "homepage": "https://github.com/ruvnet/vsc-remote-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
     "commander": "^11.0.0",

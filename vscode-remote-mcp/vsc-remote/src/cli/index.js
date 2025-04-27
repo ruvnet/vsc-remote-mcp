@@ -54,6 +54,14 @@ async function startServer(options) {
     } else {
       console.log(chalk.blue('Server running in stdio mode'));
     }
+    
+    // Keep the process alive by creating a never-resolving promise
+    // This ensures the server connection doesn't close prematurely
+    return new Promise(() => {
+      // This promise never resolves, keeping the Node.js process alive
+      // The server will be properly shut down by the signal handlers in VSCodeRemoteMcpServer
+      logger.debug('Server running in background mode');
+    });
   } catch (error) {
     spinner.fail(chalk.red('Failed to start server'));
     logger.error('Server startup error:', error);

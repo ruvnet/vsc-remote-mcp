@@ -1,5 +1,5 @@
 /**
- * VSCode Remote MCP Server - SDK Implementation
+ * VSCode Remote MCP Server - Direct Implementation
  *
  * This script provides an MCP server implementation for VSCode Remote integration
  * using the official MCP SDK. It handles file operations, code analysis, VSCode instance

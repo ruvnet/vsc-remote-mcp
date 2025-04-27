@@ -1,17 +1,22 @@
 # VSCode Remote MCP Server
 
-A command-line interface and MCP server for VSCode remote development tools. This package provides a set of tools for code analysis, code modification, and VSCode instance management, all accessible through a simple CLI or programmatically in your Node.js applications.
+A command-line interface and MCP server for VSCode remote development tools. This package provides a set of tools for code analysis, code modification, and VSCode instance management, all accessible through a simple CLI or programmatically in your Node.js applications. Deploy and manage individual VSCode instances or entire swarms with secure login credentials and resource management.
 
 [![npm version](https://img.shields.io/npm/v/vsc-remote.svg)](https://www.npmjs.com/package/vsc-remote)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GitHub](https://img.shields.io/badge/GitHub-ruvnet/vsc--remote--mcp-blue.svg)](https://github.com/ruvnet/vsc-remote-mcp)
+
+Created by [rUv](https://github.com/ruvnet)
 
 ## Features
 
 - **Code Analysis**: Analyze code structure, complexity, and potential issues
 - **Code Search**: Search for patterns in code files with context
 - **Code Modification**: Add, update, remove, or replace code segments
-- **VSCode Instance Management**: Deploy, list, and stop VSCode instances
+- **VSCode Instance Management**: Deploy, list, and stop VSCode instances with secure UI login
+- **VSCode Swarm Management**: Deploy and manage multiple VSCode instances as a coordinated swarm
 - **Resource Management**: Manage resources for VSCode instances and jobs
+- **Secure Access Control**: Generate and manage secure passwords for VSCode UI access
 - **MCP Server**: Run as an MCP server for integration with AI assistants
 - **Programmatic API**: Use all features programmatically in Node.js applications
 - **Security Features**: Command injection protection, secure password handling, and authentication
@@ -261,13 +266,13 @@ Example output:
 
 #### Deploy VSCode Instance
 
-Deploy a new VSCode instance using Docker.
+Deploy a new VSCode instance using Docker. Each instance provides a web-based VSCode UI accessible via browser with secure login credentials.
 
 ```bash
 # Basic deployment
 npx vsc-remote deploy-vscode-instance --name my-instance --workspace-path /path/to/workspace
 
-# Deployment with custom settings
+# Deployment with custom settings and specific password
 npx vsc-remote deploy-vscode-instance --name my-instance --workspace-path /path/to/workspace --port 8080 --password mypassword --cpu 2 --memory 4Gi
 ```
 
@@ -290,6 +295,25 @@ Example output:
   "created_at": "2025-04-26T22:30:00Z",
   "container_id": "container-xyz789"
 }
+```
+
+After deployment, access the VSCode UI by navigating to the URL in your browser (e.g., http://localhost:8080) and entering the password you specified. If no password is provided, a secure random password will be generated and displayed in the output.
+
+#### VSCode Swarm Management
+
+Deploy and manage multiple VSCode instances as a coordinated swarm for team development or distributed workloads.
+
+```bash
+# Deploy multiple instances as a swarm
+for i in {1..5}; do
+  npx vsc-remote deploy-vscode-instance --name "swarm-node-$i" --workspace-path /path/to/workspace --port $((8080 + $i))
+done
+
+# List all swarm instances
+npx vsc-remote list-vscode-instances --filter "swarm-node"
+
+# Stop all swarm instances
+npx vsc-remote list-vscode-instances --filter "swarm-node" --format json | jq -r '.instances[].name' | xargs -I{} npx vsc-remote stop-vscode-instance --name {}
 ```
 
 #### List VSCode Instances
@@ -566,6 +590,13 @@ You can configure the behavior using environment variables:
 | `MCP_DEFAULT_MEMORY_LIMIT` | Default memory limit for VSCode instances | `2Gi` |
 | `MCP_DEFAULT_DISK_LIMIT` | Default disk limit for VSCode instances | `5Gi` |
 | `MCP_MIN_PASSWORD_LENGTH` | Minimum password length for VSCode instances | `12` |
+| `MCP_PASSWORD_COMPLEXITY` | Password complexity level (low, medium, high) | `medium` |
+| `MCP_AUTO_GENERATE_PASSWORD` | Auto-generate secure passwords (1 = enabled, 0 = disabled) | `1` |
+| `MCP_SWARM_PREFIX` | Default prefix for swarm instance names | `swarm-node` |
+| `MCP_MAX_SWARM_SIZE` | Maximum number of instances in a swarm | `10` |
+| `MCP_REQUEST_TIMEOUT` | Timeout for MCP requests in milliseconds | `60000` |
+| `MCP_CONNECTION_TIMEOUT` | Timeout for MCP connections in milliseconds | `300000` |
+| `MCP_KEEPALIVE_INTERVAL` | Interval for MCP keep-alive messages in milliseconds | `30000` |
 
 ## Troubleshooting
 
@@ -597,6 +628,20 @@ If you get a "Connection refused" error when using WebSocket mode:
 1. Check if the port is already in use
 2. Verify firewall settings
 3. Ensure the server is running
+
+#### Connection Closed
+
+If you encounter a "MCP error -32000: Connection closed" error:
+
+1. Use the latest version of the package which includes fixes for persistent connections
+2. Try increasing the request timeout with `--request-timeout 120000` (2 minutes)
+3. Use the `--connection-timeout` and `--keep-alive-interval` options to adjust connection parameters
+4. Ensure the server process stays alive by using the start command directly
+
+Example with increased timeouts:
+```bash
+npx vsc-remote start --request-timeout 120000 --connection-timeout 300000 --keep-alive-interval 30000
+```
 
 #### Authentication Failed
 

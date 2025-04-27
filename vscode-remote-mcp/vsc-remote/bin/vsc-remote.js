@@ -33,6 +33,10 @@ program
   .option('-m, --mode <mode>', 'Server mode (stdio or websocket)', 'stdio')
   .option('-t, --token <token>', 'Authentication token for WebSocket mode')
   .option('--generate-token', 'Generate a new authentication token for WebSocket mode')
+  .option('--request-timeout <ms>', 'Timeout for MCP requests in milliseconds', '60000')
+  .option('--connection-timeout <ms>', 'Timeout for MCP connections in milliseconds', '300000')
+  .option('--keep-alive-interval <ms>', 'Interval for MCP keep-alive messages in milliseconds', '30000')
+  .option('--instances-dir <path>', 'Directory to store VSCode instances data')
   .action(executeStartCommand);
 
 // Analyze code command
@@ -109,3 +113,23 @@ program
 
 // Parse arguments
 program.parse(process.argv);
+
+// Prevent the process from exiting when running the 'start' command
+// This is necessary for the MCP server to keep running
+if (process.argv.length > 2 && process.argv[2] === 'start') {
+  // Keep the process alive by setting up an interval that never completes
+  setInterval(() => {
+    // This empty interval keeps the Node.js event loop active
+  }, 1000);
+  
+  // Also handle process signals to ensure clean shutdown
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT signal. Shutting down...');
+    process.exit(0);
+  });
+  
+  process.on('SIGTERM', () => {
+    console.log('Received SIGTERM signal. Shutting down...');
+    process.exit(0);
+  });
+}

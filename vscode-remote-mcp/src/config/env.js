@@ -102,6 +102,13 @@ const fileConfig = {
   allowedFilePaths: parseStringArray(getEnv('MCP_ALLOWED_FILE_PATHS', './,../,src/,scripts/'))
 };
 
+// MCP protocol configuration
+const mcpConfig = {
+  requestTimeoutMs: parseNumber(getEnv('MCP_REQUEST_TIMEOUT', '60000'), 60000),
+  connectionTimeoutMs: parseNumber(getEnv('MCP_CONNECTION_TIMEOUT', '300000'), 300000),
+  keepAliveIntervalMs: parseNumber(getEnv('MCP_KEEPALIVE_INTERVAL', '30000'), 30000)
+};
+
 // Complete configuration
 const config = {
   server: serverConfig,
@@ -109,7 +116,8 @@ const config = {
   log: logConfig,
   security: securityConfig,
   command: commandConfig,
-  file: fileConfig
+  file: fileConfig,
+  mcp: mcpConfig
 };
 
 module.exports = config;

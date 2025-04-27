@@ -22,7 +22,22 @@
         "listProjects"
       ]
     },
-    "sparc2-mcp": {
+    "vsc-remote-npx": {
+        "command": "node",
+        "args": [
+          "vscode-remote-mcp/run-vsc-remote.js"
+        ],
+        "alwaysAllow": [
+          "analyze_code",
+          "modify_code",
+          "search_code",
+          "deploy_vscode_instance",
+          "list_vscode_instances",
+          "stop_vscode_instance",
+          "manage_job_resources"
+        ]
+      },
+    "vsc-remote-node": {
       "command": "node",
       "args": [
         "vscode-remote-mcp/run-mcp-server.js"

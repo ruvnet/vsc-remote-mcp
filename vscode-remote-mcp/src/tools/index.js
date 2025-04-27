@@ -12,6 +12,7 @@ const deployVSCodeInstance = require('./deploy_vscode_instance');
 const listVSCodeInstances = require('./list_vscode_instances');
 const stopVSCodeInstance = require('./stop_vscode_instance');
 const manageJobResources = require('./manage_job_resources');
+const swarmManagement = require('./manage_swarm');
 
 // Tool schemas
 const toolSchemas = {
@@ -255,6 +256,191 @@ const toolSchemas = {
   }
 };
 
+// Add swarm management tool schemas
+toolSchemas.manage_swarm_status = {
+  type: 'object',
+  properties: {},
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_list_instances = {
+  type: 'object',
+  properties: {
+    status: {
+      type: 'string',
+      description: 'Filter by status'
+    },
+    namePattern: {
+      type: 'string',
+      description: 'Filter by name pattern'
+    },
+    createdAfter: {
+      type: 'string',
+      description: 'Filter by creation date (ISO string)'
+    },
+    createdBefore: {
+      type: 'string',
+      description: 'Filter by creation date (ISO string)'
+    },
+    tags: {
+      type: 'object',
+      description: 'Filter by tags',
+      additionalProperties: {
+        type: 'string'
+      }
+    },
+    limit: {
+      type: 'number',
+      description: 'Maximum number of results'
+    },
+    offset: {
+      type: 'number',
+      description: 'Result offset'
+    }
+  },
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_get_instance = {
+  type: 'object',
+  properties: {
+    instanceId: {
+      type: 'string',
+      description: 'Instance ID'
+    }
+  },
+  required: ['instanceId'],
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_start_instance = {
+  type: 'object',
+  properties: {
+    instanceId: {
+      type: 'string',
+      description: 'Instance ID'
+    }
+  },
+  required: ['instanceId'],
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_stop_instance = {
+  type: 'object',
+  properties: {
+    instanceId: {
+      type: 'string',
+      description: 'Instance ID'
+    },
+    force: {
+      type: 'boolean',
+      description: 'Force stop',
+      default: false
+    }
+  },
+  required: ['instanceId'],
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_delete_instance = {
+  type: 'object',
+  properties: {
+    instanceId: {
+      type: 'string',
+      description: 'Instance ID'
+    }
+  },
+  required: ['instanceId'],
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_get_instance_health = {
+  type: 'object',
+  properties: {
+    instanceId: {
+      type: 'string',
+      description: 'Instance ID'
+    }
+  },
+  required: ['instanceId'],
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_plan_migration = {
+  type: 'object',
+  properties: {
+    instanceId: {
+      type: 'string',
+      description: 'Instance ID'
+    },
+    targetProvider: {
+      type: 'string',
+      description: 'Target provider type'
+    },
+    targetRegion: {
+      type: 'string',
+      description: 'Target region'
+    },
+    options: {
+      type: 'object',
+      description: 'Migration options',
+      properties: {
+        force: {
+          type: 'boolean',
+          description: 'Whether to force migration'
+        },
+        maxDowntimeMs: {
+          type: 'number',
+          description: 'Maximum downtime in milliseconds'
+        },
+        keepSource: {
+          type: 'boolean',
+          description: 'Whether to keep source instance'
+        }
+      },
+      additionalProperties: false
+    }
+  },
+  required: ['instanceId', 'targetProvider'],
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_start_migration = {
+  type: 'object',
+  properties: {
+    planId: {
+      type: 'string',
+      description: 'Migration plan ID'
+    }
+  },
+  required: ['planId'],
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_get_migration_status = {
+  type: 'object',
+  properties: {
+    migrationId: {
+      type: 'string',
+      description: 'Migration ID'
+    }
+  },
+  required: ['migrationId'],
+  additionalProperties: false
+};
+
+toolSchemas.manage_swarm_cancel_migration = {
+  type: 'object',
+  properties: {
+    migrationId: {
+      type: 'string',
+      description: 'Migration ID'
+    }
+  },
+  required: ['migrationId'],
+  additionalProperties: false
+};
+
 // Export tools and schemas
 module.exports = {
   tools: {
@@ -264,7 +450,18 @@ module.exports = {
     deploy_vscode_instance: deployVSCodeInstance,
     list_vscode_instances: listVSCodeInstances,
     stop_vscode_instance: stopVSCodeInstance,
-    manage_job_resources: manageJobResources
+    manage_job_resources: manageJobResources,
+    manage_swarm_status: swarmManagement.get_swarm_status,
+    manage_swarm_list_instances: swarmManagement.list_swarm_instances,
+    manage_swarm_get_instance: swarmManagement.get_swarm_instance,
+    manage_swarm_start_instance: swarmManagement.start_swarm_instance,
+    manage_swarm_stop_instance: swarmManagement.stop_swarm_instance,
+    manage_swarm_delete_instance: swarmManagement.delete_swarm_instance,
+    manage_swarm_get_instance_health: swarmManagement.get_instance_health,
+    manage_swarm_plan_migration: swarmManagement.plan_migration,
+    manage_swarm_start_migration: swarmManagement.start_migration,
+    manage_swarm_get_migration_status: swarmManagement.get_migration_status,
+    manage_swarm_cancel_migration: swarmManagement.cancel_migration
   },
   toolSchemas
 };

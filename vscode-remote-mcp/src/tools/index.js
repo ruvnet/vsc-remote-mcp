@@ -14,6 +14,76 @@ const stopVSCodeInstance = require('./stop_vscode_instance');
 const manageJobResources = require('./manage_job_resources');
 const swarmManagement = require('./manage_swarm');
 
+/**
+ * Wrap swarm management tool responses to include content array
+ * @param {Function} toolFn - Original tool function
+ * @returns {Function} - Wrapped tool function
+ */
+function wrapSwarmTool(toolFn) {
+  return async function(args) {
+    try {
+      const result = await toolFn(args || {});
+      
+      // If the result already has a content array, return it as is
+      if (result && Array.isArray(result.content)) {
+        return result;
+      }
+      
+      // If the result is successful, wrap it in a content array with proper MCP format
+      if (result && result.success) {
+        // Create a text representation of the result data
+        let textContent = '';
+        if (result.data) {
+          textContent = JSON.stringify(result.data, null, 2);
+        } else if (result.message) {
+          textContent = result.message;
+        } else {
+          textContent = 'Operation completed successfully';
+        }
+        
+        return {
+          ...result,
+          content: [
+            {
+              type: "text",
+              text: textContent
+            }
+          ]
+        };
+      }
+      
+      // If the result is an error, format it properly
+      if (result && !result.success) {
+        const errorMessage = result.error?.message || 'Unknown error';
+        return {
+          ...result,
+          content: [
+            {
+              type: "text",
+              text: `Error: ${errorMessage}`
+            }
+          ]
+        };
+      }
+      
+      // Default fallback
+      return result;
+    } catch (error) {
+      console.error('Error in swarm tool:', error);
+      return {
+        success: false,
+        error: error.message || 'Unknown error',
+        content: [
+          {
+            type: "text",
+            text: `Error: ${error.message || 'Unknown error'}`
+          }
+        ]
+      };
+    }
+  };
+}
+
 // Tool schemas
 const toolSchemas = {
   analyze_code: {
@@ -451,17 +521,17 @@ module.exports = {
     list_vscode_instances: listVSCodeInstances,
     stop_vscode_instance: stopVSCodeInstance,
     manage_job_resources: manageJobResources,
-    manage_swarm_status: swarmManagement.get_swarm_status,
-    manage_swarm_list_instances: swarmManagement.list_swarm_instances,
-    manage_swarm_get_instance: swarmManagement.get_swarm_instance,
-    manage_swarm_start_instance: swarmManagement.start_swarm_instance,
-    manage_swarm_stop_instance: swarmManagement.stop_swarm_instance,
-    manage_swarm_delete_instance: swarmManagement.delete_swarm_instance,
-    manage_swarm_get_instance_health: swarmManagement.get_instance_health,
-    manage_swarm_plan_migration: swarmManagement.plan_migration,
-    manage_swarm_start_migration: swarmManagement.start_migration,
-    manage_swarm_get_migration_status: swarmManagement.get_migration_status,
-    manage_swarm_cancel_migration: swarmManagement.cancel_migration
+    manage_swarm_status: wrapSwarmTool(swarmManagement.get_swarm_status),
+    manage_swarm_list_instances: wrapSwarmTool(swarmManagement.list_swarm_instances),
+    manage_swarm_get_instance: wrapSwarmTool(swarmManagement.get_swarm_instance),
+    manage_swarm_start_instance: wrapSwarmTool(swarmManagement.start_swarm_instance),
+    manage_swarm_stop_instance: wrapSwarmTool(swarmManagement.stop_swarm_instance),
+    manage_swarm_delete_instance: wrapSwarmTool(swarmManagement.delete_swarm_instance),
+    manage_swarm_get_instance_health: wrapSwarmTool(swarmManagement.get_instance_health),
+    manage_swarm_plan_migration: wrapSwarmTool(swarmManagement.plan_migration),
+    manage_swarm_start_migration: wrapSwarmTool(swarmManagement.start_migration),
+    manage_swarm_get_migration_status: wrapSwarmTool(swarmManagement.get_migration_status),
+    manage_swarm_cancel_migration: wrapSwarmTool(swarmManagement.cancel_migration)
   },
   toolSchemas
 };

@@ -357,12 +357,11 @@ async function deployVSCodeInstance(params) {
     const configPath = path.join(instancesDir, `${instanceName}.json`);
     await fs.writeFile(configPath, JSON.stringify(instanceConfig, null, 2));
     
-    // Build Docker command
-    const dockerCommand = buildDockerCommand(instanceName, workspacePath, port, password, extensions, cpuLimit, memoryLimit, environment);
+    // Build Docker arguments
+    const dockerArgs = buildDockerArgs(instanceName, workspacePath, port, password, extensions, cpuLimit, memoryLimit, environment);
     
     try {
       // Execute Docker command using secure spawn
-      const dockerArgs = buildDockerArgs(instanceName, workspacePath, port, password, extensions, cpuLimit, memoryLimit, environment);
       await execSecure('docker', dockerArgs);
     } catch (error) {
       // Handle Docker-specific errors

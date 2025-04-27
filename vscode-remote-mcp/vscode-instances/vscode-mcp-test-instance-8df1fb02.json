@@ -1,0 +1,14 @@
+{
+  "id": "8df1fb02",
+  "name": "mcp-test-instance",
+  "instance_name": "vscode-mcp-test-instance-8df1fb02",
+  "workspace_path": "/workspaces/vscode/workspace",
+  "port": 8888,
+  "extensions": [
+    "ms-python.python"
+  ],
+  "cpu_limit": 1,
+  "memory_limit": "1GB",
+  "environment": {},
+  "created_at": "2025-04-27T14:16:12.467Z"
+}

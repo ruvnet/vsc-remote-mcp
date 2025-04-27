@@ -48,7 +48,18 @@ class VSCodeRemoteMcpServer {
             deploy_vscode_instance: true,
             list_vscode_instances: true,
             stop_vscode_instance: true,
-            manage_job_resources: true
+            manage_job_resources: true,
+            manage_swarm_status: true,
+            manage_swarm_list_instances: true,
+            manage_swarm_get_instance: true,
+            manage_swarm_start_instance: true,
+            manage_swarm_stop_instance: true,
+            manage_swarm_delete_instance: true,
+            manage_swarm_get_instance_health: true,
+            manage_swarm_plan_migration: true,
+            manage_swarm_start_migration: true,
+            manage_swarm_get_migration_status: true,
+            manage_swarm_cancel_migration: true
           },
         },
       }
@@ -143,6 +154,28 @@ class VSCodeRemoteMcpServer {
         return 'Stop a running VSCode instance';
       case 'manage_job_resources':
         return 'Manage resources for VSCode instances and associated jobs';
+      case 'manage_swarm_status':
+        return 'Get the status of the VSCode Remote Swarm';
+      case 'manage_swarm_list_instances':
+        return 'List all instances in the VSCode Remote Swarm';
+      case 'manage_swarm_get_instance':
+        return 'Get details for a specific instance in the VSCode Remote Swarm';
+      case 'manage_swarm_start_instance':
+        return 'Start an instance in the VSCode Remote Swarm';
+      case 'manage_swarm_stop_instance':
+        return 'Stop an instance in the VSCode Remote Swarm';
+      case 'manage_swarm_delete_instance':
+        return 'Delete an instance from the VSCode Remote Swarm';
+      case 'manage_swarm_get_instance_health':
+        return 'Get health information for an instance in the VSCode Remote Swarm';
+      case 'manage_swarm_plan_migration':
+        return 'Plan migration of an instance to a different provider or region';
+      case 'manage_swarm_start_migration':
+        return 'Start a planned migration';
+      case 'manage_swarm_get_migration_status':
+        return 'Get the status of a migration';
+      case 'manage_swarm_cancel_migration':
+        return 'Cancel a migration';
       default:
         return 'Unknown tool';
     }

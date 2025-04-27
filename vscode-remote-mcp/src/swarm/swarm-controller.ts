@@ -650,18 +650,39 @@ export class SwarmController {
   public async dispose(): Promise<void> {
     logger.info('Disposing swarm controller');
     
-    // Dispose of health monitor
-    this.healthMonitor.dispose();
-    
-    // Dispose of migration manager
-    this.migrationManager.dispose();
-    
-    // Dispose of registry
-    this.registry.dispose();
-    
-    this.initialized = false;
-    
-    logger.info('Swarm controller disposed');
+    try {
+      // Dispose of health monitor
+      if (this.healthMonitor) {
+        try {
+          this.healthMonitor.dispose();
+        } catch (error) {
+          console.error('Error disposing health monitor:', error);
+        }
+      }
+      
+      // Dispose of migration manager
+      if (this.migrationManager) {
+        try {
+          this.migrationManager.dispose();
+        } catch (error) {
+          console.error('Error disposing migration manager:', error);
+        }
+      }
+      
+      // Dispose of registry
+      if (this.registry) {
+        try {
+          this.registry.dispose();
+        } catch (error) {
+          console.error('Error disposing instance registry:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error during swarm controller disposal:', error);
+    } finally {
+      this.initialized = false;
+      logger.info('Swarm controller disposed');
+    }
   }
   
   /**

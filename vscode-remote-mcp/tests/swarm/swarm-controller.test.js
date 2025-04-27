@@ -357,4 +357,183 @@ describe('SwarmController', () => {
       expect(mockProvider.getInstance).not.toHaveBeenCalled();
     });
   });
+
+  describe('listInstances', () => {
+    // Sample test instances with different properties for filtering tests
+    const testInstances = [
+      {
+        id: 'instance-1',
+        name: 'dev-instance',
+        providerInstanceId: 'docker-instance-1',
+        providerType: ProviderType.DOCKER,
+        status: InstanceStatus.RUNNING,
+        config: {},
+        network: {},
+        resources: {},
+        metadata: { environment: 'development', owner: 'user1' },
+        createdAt: new Date('2025-01-01T00:00:00Z'),
+        updatedAt: new Date()
+      },
+      {
+        id: 'instance-2',
+        name: 'prod-instance',
+        providerInstanceId: 'docker-instance-2',
+        providerType: ProviderType.DOCKER,
+        status: InstanceStatus.RUNNING,
+        config: {},
+        network: {},
+        resources: {},
+        metadata: { environment: 'production', owner: 'user2' },
+        createdAt: new Date('2025-02-01T00:00:00Z'),
+        updatedAt: new Date()
+      },
+      {
+        id: 'instance-3',
+        name: 'test-instance',
+        providerInstanceId: 'docker-instance-3',
+        providerType: ProviderType.DOCKER,
+        status: InstanceStatus.STOPPED,
+        config: {},
+        network: {},
+        resources: {},
+        metadata: { environment: 'testing', owner: 'user1' },
+        createdAt: new Date('2025-03-01T00:00:00Z'),
+        updatedAt: new Date()
+      },
+      {
+        id: 'instance-4',
+        name: 'staging-instance',
+        providerInstanceId: 'flyio-instance-1',
+        providerType: ProviderType.FLYIO,
+        status: InstanceStatus.FAILED,
+        config: {},
+        network: {},
+        resources: {},
+        metadata: { environment: 'staging', owner: 'user3' },
+        createdAt: new Date('2025-04-01T00:00:00Z'),
+        updatedAt: new Date()
+      }
+    ];
+
+    beforeEach(async () => {
+      await swarmController.initialize();
+      
+      // Mock registry listInstances to return our test instances
+      InstanceRegistry.prototype.listInstances.mockReturnValue([...testInstances]);
+    });
+
+    it('should list all instances when no filter is provided', async () => {
+      const instances = await swarmController.listInstances();
+      
+      expect(instances).toHaveLength(4);
+      expect(instances).toEqual(expect.arrayContaining(testInstances));
+      expect(InstanceRegistry.prototype.listInstances).toHaveBeenCalled();
+    });
+
+    it('should filter instances by status (single value)', async () => {
+      const instances = await swarmController.listInstances({ status: InstanceStatus.RUNNING });
+      
+      expect(instances).toHaveLength(2);
+      expect(instances[0].id).toBe('instance-1');
+      expect(instances[1].id).toBe('instance-2');
+      expect(instances.every(i => i.status === InstanceStatus.RUNNING)).toBe(true);
+    });
+
+    it('should filter instances by status (multiple values)', async () => {
+      const instances = await swarmController.listInstances({
+        status: [InstanceStatus.RUNNING, InstanceStatus.FAILED]
+      });
+      
+      expect(instances).toHaveLength(3);
+      expect(instances.some(i => i.id === 'instance-1')).toBe(true);
+      expect(instances.some(i => i.id === 'instance-2')).toBe(true);
+      expect(instances.some(i => i.id === 'instance-4')).toBe(true);
+      expect(instances.every(i =>
+        i.status === InstanceStatus.RUNNING || i.status === InstanceStatus.FAILED
+      )).toBe(true);
+    });
+
+    it('should filter instances by name pattern', async () => {
+      const instances = await swarmController.listInstances({ namePattern: 'test' });
+      
+      expect(instances).toHaveLength(1);
+      expect(instances[0].id).toBe('instance-3');
+      expect(instances[0].name).toBe('test-instance');
+    });
+
+    it('should filter instances by creation date range (createdAfter)', async () => {
+      const instances = await swarmController.listInstances({
+        createdAfter: new Date('2025-02-15T00:00:00Z')
+      });
+      
+      expect(instances).toHaveLength(2);
+      expect(instances[0].id).toBe('instance-3');
+      expect(instances[1].id).toBe('instance-4');
+    });
+
+    it('should filter instances by creation date range (createdBefore)', async () => {
+      const instances = await swarmController.listInstances({
+        createdBefore: new Date('2025-02-15T00:00:00Z')
+      });
+      
+      expect(instances).toHaveLength(2);
+      expect(instances[0].id).toBe('instance-1');
+      expect(instances[1].id).toBe('instance-2');
+    });
+
+    it('should filter instances by creation date range (both createdAfter and createdBefore)', async () => {
+      const instances = await swarmController.listInstances({
+        createdAfter: new Date('2025-01-15T00:00:00Z'),
+        createdBefore: new Date('2025-03-15T00:00:00Z')
+      });
+      
+      expect(instances).toHaveLength(2);
+      expect(instances[0].id).toBe('instance-2');
+      expect(instances[1].id).toBe('instance-3');
+    });
+
+    it('should filter instances by tags', async () => {
+      const instances = await swarmController.listInstances({
+        tags: { environment: 'development', owner: 'user1' }
+      });
+      
+      expect(instances).toHaveLength(1);
+      expect(instances[0].id).toBe('instance-1');
+    });
+
+    it('should apply pagination (limit)', async () => {
+      const instances = await swarmController.listInstances({ limit: 2 });
+      
+      expect(instances).toHaveLength(2);
+      expect(instances[0].id).toBe('instance-1');
+      expect(instances[1].id).toBe('instance-2');
+    });
+
+    it('should apply pagination (offset)', async () => {
+      const instances = await swarmController.listInstances({ offset: 2 });
+      
+      expect(instances).toHaveLength(2);
+      expect(instances[0].id).toBe('instance-3');
+      expect(instances[1].id).toBe('instance-4');
+    });
+
+    it('should apply pagination (both limit and offset)', async () => {
+      const instances = await swarmController.listInstances({ offset: 1, limit: 2 });
+      
+      expect(instances).toHaveLength(2);
+      expect(instances[0].id).toBe('instance-2');
+      expect(instances[1].id).toBe('instance-3');
+    });
+
+    it('should apply multiple filters together', async () => {
+      const instances = await swarmController.listInstances({
+        status: InstanceStatus.RUNNING,
+        createdAfter: new Date('2025-01-15T00:00:00Z'),
+        tags: { owner: 'user2' }
+      });
+      
+      expect(instances).toHaveLength(1);
+      expect(instances[0].id).toBe('instance-2');
+    });
+  });
 });

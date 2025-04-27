@@ -5,9 +5,12 @@
   "main": "run-mcp-server.js",
   "scripts": {
     "start": "node run-mcp-server.js",
-    "test": "node test-mcp-tools.js",
+    "test": "jest",
+    "test:js": "jest --testMatch='**/*.test.js'",
+    "test:ts": "jest --testMatch='**/*.test.ts'",
     "test:sdk": "node test-sdk-server.js",
-    "dev": "nodemon run-mcp-server.js"
+    "dev": "nodemon run-mcp-server.js",
+    "setup:test": "npm install --save-dev @types/jest ts-jest @babel/preset-typescript"
   },
   "keywords": [
     "vscode",
@@ -26,9 +29,12 @@
   "devDependencies": {
     "@babel/core": "^7.21.4",
     "@babel/preset-env": "^7.21.4",
+    "@babel/preset-typescript": "^7.27.0",
+    "@types/jest": "^29.5.14",
     "@types/uuid": "^10.0.0",
     "jest": "^29.5.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "ts-jest": "^29.3.2"
   },
   "engines": {
     "node": ">=14.0.0"

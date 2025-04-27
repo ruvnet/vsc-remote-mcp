@@ -1,69 +1,88 @@
-# VSCode Remote MCP Tests
+# Testing in vscode-remote-mcp
 
-This directory contains tests for the VSCode Remote MCP system.
-
-## Message Format Tests
-
-The `message-validator.test.js` file contains tests for the message format validation functions. These tests ensure that:
-
-1. Message types are properly validated (must be non-empty strings)
-2. Message payloads are properly validated (must be present)
-3. Message IDs are properly validated (must be non-empty strings when provided)
-4. Message timestamps are properly validated (must be valid ISO 8601 timestamps when provided)
-5. Complete messages are properly validated (all required fields present and valid)
-
-## Running Tests
-
-To run the tests, use the following command from the project root:
-
-```bash
-npm test
-```
-
-To run tests in watch mode during development:
-
-```bash
-npm run test:watch
-```
-
-## Test Coverage
-
-The tests are configured to generate coverage reports. The coverage threshold is set to 80% for:
-
-- Branches
-- Functions
-- Lines
-- Statements
-
-Coverage reports are generated in the `coverage` directory.
+This directory contains tests for the vscode-remote-mcp project. The project supports both JavaScript and TypeScript tests.
 
 ## Test Structure
 
-Tests follow the Jest testing framework conventions:
+- Tests are organized by module in subdirectories
+- Both `.js` and `.ts` test files are supported
+- TypeScript tests use ts-jest for compilation and execution
 
-- `describe` blocks group related tests
-- `test` or `it` blocks define individual test cases
-- `expect` statements define assertions
+## Running Tests
+
+You can run tests using the following npm scripts:
+
+```bash
+# Run all tests (both JS and TS)
+npm test
+
+# Run only JavaScript tests
+npm run test:js
+
+# Run only TypeScript tests
+npm run test:ts
+
+# Run SDK tests
+npm run test:sdk
+```
+
+## Setting Up TypeScript Tests
+
+If you're adding new TypeScript tests, make sure you have the required dependencies:
+
+```bash
+# Install TypeScript testing dependencies
+npm run setup:test
+```
+
+This will install:
+- `@types/jest` - TypeScript type definitions for Jest
+- `ts-jest` - TypeScript preprocessor for Jest
+- `@babel/preset-typescript` - Babel preset for TypeScript
+
+## Test Configuration
+
+The Jest configuration is in `jest.config.js` at the project root. It's set up to:
+
+1. Transform JavaScript files with babel-jest
+2. Transform TypeScript files with ts-jest
+3. Collect coverage information
+4. Use the Node.js test environment
+5. Load setup files that provide global Jest functions
+
+## Writing TypeScript Tests
+
+When writing TypeScript tests:
+
+1. Import the necessary types from the modules you're testing
+2. Use the reference directive `/// <reference types="jest" />` at the top of your test file
+3. Use standard Jest functions (`describe`, `it`, `expect`, etc.)
+4. Mock dependencies using `jest.mock()`
 
 Example:
 
-```javascript
-describe('validateMessageType', () => {
-  test('should accept valid message types', () => {
-    expect(validateMessageType('connection')).toBe(true);
-  });
+```typescript
+/**
+ * Example TypeScript test
+ */
 
-  test('should reject empty message types', () => {
-    expect(() => validateMessageType('')).toThrow('Message type must be a non-empty string');
+/// <reference types="jest" />
+
+import { MyModule } from '../../src/my-module';
+
+describe('MyModule', () => {
+  it('should do something', () => {
+    const result = MyModule.doSomething();
+    expect(result).toBe(true);
   });
 });
 ```
 
-## Adding New Tests
+## Troubleshooting
 
-When adding new validation functions, follow these guidelines:
+If you encounter issues with TypeScript tests:
 
-1. Create tests for both valid and invalid inputs
-2. Test edge cases (empty strings, null values, etc.)
-3. Ensure error messages are descriptive and helpful
-4. Maintain high test coverage
+1. Make sure you have all required dependencies installed
+2. Check that your tsconfig.json includes the test directory
+3. Verify that Jest is configured correctly for TypeScript
+4. Try running tests with the `--no-cache` flag to clear Jest's cache

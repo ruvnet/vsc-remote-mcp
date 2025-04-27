@@ -1,4 +1,4 @@
-# VSCode Remote MCP Server
+# CodeSwarm: VSCode Remote MCP Server
 
 A command-line interface and MCP server for VSCode remote development tools. This package provides a set of tools for code analysis, code modification, and VSCode instance management, all accessible through a simple CLI or programmatically in your Node.js applications. Deploy and manage individual VSCode instances or entire swarms with secure login credentials and resource management.
 

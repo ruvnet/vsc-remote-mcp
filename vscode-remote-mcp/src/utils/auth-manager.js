@@ -33,7 +33,8 @@ class MCPAuthManager {
       throw new Error('Server ID and token are required');
     }
     
-    // Store token
+    // Store token securely - avoid storing raw tokens in memory when possible
+    // In a production environment, consider using a secure credential store
     this.tokens.set(serverId, token);
     
     // Hash token

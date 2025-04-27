@@ -66,14 +66,23 @@ async function searchCode(params) {
     }
     
     // Escape pattern for shell
+    // Validate and sanitize inputs to prevent command injection
+    if (!/^[a-zA-Z0-9\-_\/\.]+$/.test(directory)) {
+      throw new Error('Invalid directory path. Only alphanumeric characters, hyphens, underscores, slashes, and dots are allowed.');
+    }
+    
+    if (!/^[a-zA-Z0-9\-_\*\.]+$/.test(filePattern)) {
+      throw new Error('Invalid file pattern. Only alphanumeric characters, hyphens, underscores, asterisks, and dots are allowed.');
+    }
+    
+    // Escape pattern for shell
     const escapedPattern = params.pattern.replace(/'/g, "'\\''");
     
-    // Build find command to get files matching pattern
-    const findCommand = `find ${directory} -type f -name "${filePattern}" -not -path "*/node_modules/*" -not -path "*/\\.git/*"`;
+    // Build find command to get files matching pattern with proper escaping
+    const findCommand = `find "${directory.replace(/"/g, '\\"')}" -type f -name "${filePattern.replace(/"/g, '\\"')}" -not -path "*/node_modules/*" -not -path "*/\\.git/*"`;
     
     // Combine find and grep
     const command = `${findCommand} -print0 | xargs -0 ${grepCommand} '${escapedPattern}' 2>/dev/null`;
-    
     // Execute command
     const { stdout } = await execAsync(command);
     

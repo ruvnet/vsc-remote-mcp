@@ -19,6 +19,73 @@ const path = require('path');
  * @param {Object} params.range - Range of lines to modify
  * @returns {Promise<Object>} Modification results
  */
+/**
+ * Validate file path to prevent directory traversal attacks
+ * @param {string} filePath - File path to validate
+ * @returns {boolean} True if path is valid, false otherwise
+ */
+function isValidFilePath(filePath) {
+  // Normalize the path to resolve any '..' or '.' segments
+  const normalizedPath = path.normalize(filePath);
+  
+  // Check if the path contains any directory traversal attempts
+  if (normalizedPath.includes('..')) {
+    return false;
+  }
+  
+  // Check if the path is absolute (starts with / or C:\ etc.)
+  if (path.isAbsolute(normalizedPath)) {
+    // For absolute paths, ensure they're within allowed directories
+    // This is a simple example - you might want to customize this for your needs
+    const allowedPrefixes = [
+      process.cwd(),
+      path.join(process.cwd(), 'src'),
+      path.join(process.cwd(), 'test')
+    ];
+    
+    return allowedPrefixes.some(prefix => normalizedPath.startsWith(prefix));
+  }
+  
+  // For relative paths, they're resolved relative to the current directory
+  // which is generally safe, but you might want to add additional checks
+  return true;
+}
+
+/**
+ * Validate regex pattern to prevent ReDoS attacks
+ * @param {string} pattern - Regex pattern to validate
+ * @returns {boolean} True if pattern is valid, false otherwise
+ */
+function isValidRegexPattern(pattern) {
+  if (!pattern || typeof pattern !== 'string') {
+    return false;
+  }
+  
+  // Check for common ReDoS patterns
+  // Nested quantifiers
+  if (/(\*\+|\+\*|\{\d+\}\*|\*\{\d+\}|\+\{\d+\}|\{\d+\}\+)/.test(pattern)) {
+    return false;
+  }
+  
+  // Overlapping ranges
+  if (/\[.*?[a-z].*?[A-Z].*?\]|\[.*?[A-Z].*?[a-z].*?\]/.test(pattern)) {
+    return false;
+  }
+  
+  // Very long patterns
+  if (pattern.length > 1000) {
+    return false;
+  }
+  
+  // Test if the pattern is valid by trying to compile it
+  try {
+    new RegExp(pattern);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 async function modifyCode(params) {
   if (!params.file_path) {
     return {
@@ -49,8 +116,41 @@ async function modifyCode(params) {
       }
     };
   }
+  
+  // Validate operation
+  const validOperations = ['add', 'update', 'remove', 'replace'];
+  if (!validOperations.includes(params.operation)) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: Invalid operation: ${params.operation}. Valid operations are: ${validOperations.join(', ')}`
+        }
+      ],
+      error: {
+        code: -32602,
+        message: `Invalid operation: ${params.operation}`
+      }
+    };
+  }
 
   try {
+    // Validate file path
+    if (!isValidFilePath(params.file_path)) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: Invalid file path: ${params.file_path}`
+          }
+        ],
+        error: {
+          code: -32602,
+          message: `Invalid file path: ${params.file_path}`
+        }
+      };
+    }
+    
     const filePath = path.resolve(params.file_path);
     
     // Check if file exists
@@ -206,11 +306,19 @@ async function updateContent(lines, params) {
   let modifiedLines = [...lines];
   
   if (params.pattern) {
+    // Validate regex pattern
+    if (!isValidRegexPattern(params.pattern)) {
+      throw new Error(`Invalid regex pattern: ${params.pattern}`);
+    }
+    
     // Update content based on pattern
     const pattern = new RegExp(params.pattern);
     let found = false;
     
-    for (let i = 0; i < modifiedLines.length; i++) {
+    // Set a maximum number of lines to check to prevent DoS
+    const maxLinesToCheck = Math.min(lines.length, 10000);
+    
+    for (let i = 0; i < maxLinesToCheck; i++) {
       if (pattern.test(modifiedLines[i])) {
         const contentLines = params.content.split('\n');
         modifiedLines.splice(i, 1, ...contentLines);
@@ -249,11 +357,19 @@ async function removeContent(lines, params) {
   let modifiedLines = [...lines];
   
   if (params.pattern) {
+    // Validate regex pattern
+    if (!isValidRegexPattern(params.pattern)) {
+      throw new Error(`Invalid regex pattern: ${params.pattern}`);
+    }
+    
     // Remove content based on pattern
     const pattern = new RegExp(params.pattern);
     let found = false;
     
-    for (let i = 0; i < modifiedLines.length; i++) {
+    // Set a maximum number of lines to check to prevent DoS
+    const maxLinesToCheck = Math.min(lines.length, 10000);
+    
+    for (let i = 0; i < maxLinesToCheck; i++) {
       if (pattern.test(modifiedLines[i])) {
         modifiedLines.splice(i, 1);
         found = true;

@@ -300,11 +300,41 @@ class VSCodeMcpServer {
       );
     }
 
+    // Validate command to prevent command injection
+    if (typeof params.command !== 'string') {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Command must be a string'
+      );
+    }
+
+    // Disallow potentially dangerous commands
+    const dangerousCommands = [
+      'rm -rf', 'sudo', '> /etc/', '| mail', '> /home/',
+      '> /root/', 'wget', 'curl -o', 'chmod 777', 'mkfs'
+    ];
+
+    for (const cmd of dangerousCommands) {
+      if (params.command.includes(cmd)) {
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          `Command contains disallowed pattern: ${cmd}`
+        );
+      }
+    }
+
     try {
       const options = {};
       if (params.cwd) {
         options.cwd = path.resolve(params.cwd);
       }
+      
+      // Add additional security options
+      options.timeout = params.timeout || 30000; // 30 second timeout
+      options.maxBuffer = 1024 * 1024 * 5; // 5MB buffer limit
+      
+      // Log command execution for audit purposes
+      console.error(`[AUDIT] Executing command: ${params.command}`);
       
       const { stdout, stderr } = await execAsync(params.command, options);
       

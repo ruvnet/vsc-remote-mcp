@@ -19,12 +19,26 @@ function validateMessage(message) {
     throw new Error('Message must be a non-null object');
   }
 
+  // Sanitize inputs to prevent XSS and injection attacks
+  const sanitizeString = (str) => {
+    if (typeof str !== 'string') return str;
+    return str.replace(/[<>'"&]/g, (char) => {
+      switch (char) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '"': return '&quot;';
+        case "'": return '&#39;';
+        case '&': return '&amp;';
+      }
+    });
+  };
+
   if (!message.type) {
     throw new Error('Message type must be a non-empty string');
   } else if (typeof message.type !== 'string' || message.type.trim() === '') {
     throw new Error('Message type must be a non-empty string');
-  } else if (!isValidMessageType(message.type)) {
-    throw new Error(`Invalid message type: ${message.type}`);
+  } else if (!isValidMessageType(sanitizeString(message.type))) {
+    throw new Error(`Invalid message type: ${sanitizeString(message.type)}`);
   }
   
   if (!message.payload) {

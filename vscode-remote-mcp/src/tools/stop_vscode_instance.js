@@ -123,6 +123,11 @@ async function stopVSCodeInstance(params) {
     
     // Stop container
     const stopCommand = force ? `docker kill ${instanceName}` : `docker stop ${instanceName}`;
+    // Validate instance name to prevent command injection
+    if (!/^[a-zA-Z0-9_-]+$/.test(instanceName)) {
+      throw new Error('Invalid instance name. Only alphanumeric characters, hyphens, and underscores are allowed.');
+    }
+    
     await execAsync(stopCommand);
     
     // Wait for container to stop

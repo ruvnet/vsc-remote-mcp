@@ -1,0 +1,61 @@
+{
+  "name": "vsc-remote",
+  "version": "1.2.0",
+  "description": "VSCode Remote MCP Server as an NPX package",
+  "main": "src/index.js",
+  "bin": {
+    "vsc-remote": "./bin/vsc-remote.js"
+  },
+  "scripts": {
+    "start": "node bin/vsc-remote.js",
+    "test": "jest",
+    "test:integration": "bash ../tests/integration/run-integration-tests.sh",
+    "test:all": "npm run test && npm run test:integration",
+    "lint": "eslint .",
+    "build": "npm run lint && npm run test",
+    "verify": "node scripts/verify-package.js",
+    "prepublishOnly": "npm run verify && npm run build",
+    "postinstall": "node scripts/postinstall.js || true"
+  },
+  "keywords": [
+    "vscode",
+    "mcp",
+    "remote",
+    "docker",
+    "cli"
+  ],
+  "author": "Edge Agents",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.7.0",
+    "commander": "^11.0.0",
+    "dotenv": "^16.0.3",
+    "inquirer": "^8.2.5",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1",
+    "uuid": "^9.0.1",
+    "ws": "^8.18.1"
+  },
+  "bundleDependencies": [
+    "@modelcontextprotocol/sdk"
+  ],
+  "devDependencies": {
+    "@babel/core": "^7.21.4",
+    "@babel/preset-env": "^7.21.4",
+    "eslint": "^8.38.0",
+    "jest": "^29.5.0",
+    "nodemon": "^2.0.22"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "scripts/",
+    "docs/",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ]
+}

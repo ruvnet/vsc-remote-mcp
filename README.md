@@ -1,1022 +1,693 @@
-/**
- * Migration Manager for VSCode Remote Swarm
- * Handles migration of VSCode instances between providers
- */
+# VSCode Remote MCP Server
 
-import { VSCodeInstance, InstanceConfig } from '../providers/core/instance.interface';
-import { Provider } from '../providers/core/provider.interface';
-import { ProviderType, InstanceStatus } from '../providers/core/provider-types';
-import { InstanceRegistry } from './instance-registry';
-import { SwarmConfig, MigrationStrategy } from './config';
-import * as logger from '../utils/logger';
-import * as path from 'path';
-import * as fs from 'fs';
+A command-line interface and MCP server for VSCode remote development tools. This package provides a set of tools for code analysis, code modification, and VSCode instance management, all accessible through a simple CLI or programmatically in your Node.js applications. Deploy and manage individual VSCode instances or entire swarms with secure login credentials and resource management.
 
-/**
- * Migration plan
- */
-export interface MigrationPlan {
-  /**
-   * Migration ID
-   */
-  id: string;
-  
-  /**
-   * Source instance ID
-   */
-  sourceInstanceId: string;
-  
-  /**
-   * Source provider type
-   */
-  sourceProviderType: ProviderType;
-  
-  /**
-   * Target provider type
-   */
-  targetProviderType: ProviderType;
-  
-  /**
-   * Migration strategy
-   */
-  strategy: MigrationStrategy;
-  
-  /**
-   * Whether to keep the source instance after migration
-   */
-  keepSource: boolean;
-  
-  /**
-   * Whether to start the target instance after migration
-   */
-  startTarget: boolean;
-  
-  /**
-   * Timeout in seconds
-   */
-  timeoutSeconds: number;
-  
-  /**
-   * Creation timestamp
-   */
-  createdAt: Date;
-  
-  /**
-   * Expiration timestamp
-   */
-  expiresAt: Date;
-  
-  /**
-   * Migration steps
-   */
-  steps: MigrationStep[];
-  
-  /**
-   * Current step index
-   */
-  currentStepIndex: number;
-  
-  /**
-   * Migration status
-   */
-  status: MigrationStatus;
-  
-  /**
-   * Target instance ID (if created)
-   */
-  targetInstanceId?: string;
-  
-  /**
-   * Error message (if failed)
-   */
-  error?: string;
-  
-  /**
-   * Completion timestamp (if completed)
-   */
-  completedAt?: Date;
-}
+[![npm version](https://img.shields.io/npm/v/vsc-remote.svg)](https://www.npmjs.com/package/vscode-remote-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GitHub](https://img.shields.io/badge/GitHub-ruvnet/vsc--remote--mcp-blue.svg)](https://github.com/ruvnet/vsc-remote-mcp)
 
-/**
- * Migration step
- */
-export interface MigrationStep {
-  /**
-   * Step name
-   */
-  name: string;
-  
-  /**
-   * Step description
-   */
-  description: string;
-  
-  /**
-   * Step status
-   */
-  status: MigrationStepStatus;
-  
-  /**
-   * Start timestamp
-   */
-  startedAt?: Date;
-  
-  /**
-   * Completion timestamp
-   */
-  completedAt?: Date;
-  
-  /**
-   * Error message
-   */
-  error?: string;
-}
+Created by [rUv](https://github.com/ruvnet)
 
-/**
- * Migration step status
- */
-export enum MigrationStepStatus {
-  /**
-   * Step is pending
-   */
-  PENDING = 'pending',
-  
-  /**
-   * Step is in progress
-   */
-  IN_PROGRESS = 'in_progress',
-  
-  /**
-   * Step completed successfully
-   */
-  COMPLETED = 'completed',
-  
-  /**
-   * Step failed
-   */
-  FAILED = 'failed',
-  
-  /**
-   * Step was skipped
-   */
-  SKIPPED = 'skipped'
-}
+## Features
 
-/**
- * Migration status
- */
-export enum MigrationStatus {
-  /**
-   * Migration is pending
-   */
-  PENDING = 'pending',
-  
-  /**
-   * Migration is in progress
-   */
-  IN_PROGRESS = 'in_progress',
-  
-  /**
-   * Migration completed successfully
-   */
-  COMPLETED = 'completed',
-  
-  /**
-   * Migration failed
-   */
-  FAILED = 'failed',
-  
-  /**
-   * Migration was cancelled
-   */
-  CANCELLED = 'cancelled',
-  
-  /**
-   * Migration timed out
-   */
-  TIMED_OUT = 'timed_out'
-}
+- **Code Analysis**: Analyze code structure, complexity, and potential issues
+- **Code Search**: Search for patterns in code files with context
+- **Code Modification**: Add, update, remove, or replace code segments
+- **VSCode Instance Management**: Deploy, list, and stop VSCode instances with secure UI login
+- **VSCode Swarm Management**: Deploy and manage multiple VSCode instances as a coordinated swarm
+- **Resource Management**: Manage resources for VSCode instances and jobs
+- **Secure Access Control**: Generate and manage secure passwords for VSCode UI access
+- **MCP Server**: Run as an MCP server for integration with AI assistants
+- **Programmatic API**: Use all features programmatically in Node.js applications
+- **Security Features**: Command injection protection, secure password handling, and authentication
 
-/**
- * Migration options
- */
-export interface MigrationOptions {
-  /**
-   * Migration strategy
-   */
-  strategy?: MigrationStrategy;
-  
-  /**
-   * Whether to keep the source instance after migration
-   */
-  keepSource?: boolean;
-  
-  /**
-   * Whether to start the target instance after migration
-   */
-  startTarget?: boolean;
-  
-  /**
-   * Timeout in seconds
-   */
-  timeoutSeconds?: number;
-}
+## Table of Contents
 
-/**
- * Migration result
- */
-export interface MigrationResult {
-  /**
-   * Migration plan
-   */
-  plan: MigrationPlan;
-  
-  /**
-   * Whether migration was successful
-   */
-  success: boolean;
-  
-  /**
-   * Target instance (if successful)
-   */
-  targetInstance?: VSCodeInstance;
-  
-  /**
-   * Error message (if failed)
-   */
-  error?: string;
-}
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [CLI Usage](#cli-usage)
+  - [Server Commands](#server-commands)
+  - [Code Analysis Commands](#code-analysis-commands)
+  - [Code Modification Commands](#code-modification-commands)
+  - [VSCode Instance Management](#vscode-instance-management)
+  - [Resource Management](#resource-management)
+- [MCP Server Usage](#mcp-server-usage)
+- [Security Features](#security-features)
+  - [Authentication](#authentication)
+  - [Command Injection Protection](#command-injection-protection)
+  - [Secure Password Handling](#secure-password-handling)
+  - [Input Validation](#input-validation)
+- [Programmatic Usage](#programmatic-usage)
+- [Environment Variables](#environment-variables)
+- [Troubleshooting](#troubleshooting)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
 
-/**
- * Migration manager class
- */
-export class MigrationManager {
-  /**
-   * Instance registry
-   */
-  private registry: InstanceRegistry;
-  
-  /**
-   * Map of providers by type
-   */
-  private providers: Map<ProviderType, Provider>;
-  
-  /**
-   * Swarm configuration
-   */
-  private config: SwarmConfig;
-  
-  /**
-   * Map of migration plans by ID
-   */
-  private migrationPlans: Map<string, MigrationPlan> = new Map();
-  
-  /**
-   * Storage directory for migration plans
-   */
-  private storageDir: string;
-  
-  /**
-   * Map of migration timeouts by ID
-   */
-  private migrationTimeouts: Map<string, NodeJS.Timeout> = new Map();
-  
-  /**
-   * Constructor
-   * @param registry Instance registry
-   * @param providers Map of providers by type
-   * @param config Swarm configuration
-   */
-  constructor(
-    registry: InstanceRegistry,
-    providers: Map<ProviderType, Provider>,
-    config: SwarmConfig
-  ) {
-    this.registry = registry;
-    this.providers = providers;
-    this.config = config;
-    this.storageDir = path.join(config.general.stateDir, 'migrations');
-    
-    // Create storage directory if it doesn't exist
-    if (!fs.existsSync(this.storageDir)) {
-      fs.mkdirSync(this.storageDir, { recursive: true });
-    }
-  }
-  
-  /**
-   * Initialize the migration manager
-   */
-  public async initialize(): Promise<void> {
-    logger.info('Initializing migration manager');
-    
-    // Load migration plans
-    this.loadMigrationPlans();
-    
-    // Resume in-progress migrations
-    await this.resumeMigrations();
-    
-    logger.info('Migration manager initialized');
-  }
-  
-  /**
-   * Load migration plans from storage
-   */
-  private loadMigrationPlans(): void {
-    try {
-      logger.info(`Loading migration plans from ${this.storageDir}`);
-      
-      // Clear existing plans
-      this.migrationPlans.clear();
-      
-      // Read plan files
-      const files = fs.readdirSync(this.storageDir);
-      
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          try {
-            const filePath = path.join(this.storageDir, file);
-            const data = fs.readFileSync(filePath, 'utf8');
-            const plan = JSON.parse(data) as MigrationPlan;
-            
-            // Restore Date objects
-            plan.createdAt = new Date(plan.createdAt);
-            plan.expiresAt = new Date(plan.expiresAt);
-            
-            if (plan.completedAt) {
-              plan.completedAt = new Date(plan.completedAt);
-            }
-            
-            for (const step of plan.steps) {
-              if (step.startedAt) {
-                step.startedAt = new Date(step.startedAt);
-              }
-              
-              if (step.completedAt) {
-                step.completedAt = new Date(step.completedAt);
-              }
-            }
-            
-            this.migrationPlans.set(plan.id, plan);
-            logger.debug(`Loaded migration plan ${plan.id} from ${filePath}`);
-          } catch (error) {
-            logger.error(`Failed to load migration plan from ${file}`, error as Record<string, any>);
-          }
-        }
+## Installation
+
+You can use this package without installation via npx:
+
+```bash
+npx vsc-remote <command>
+```
+
+Or install it globally:
+
+```bash
+npm install -g vsc-remote
+vsc-remote <command>
+```
+
+For programmatic usage in your Node.js applications:
+
+```bash
+npm install vsc-remote --save
+```
+
+> **Note**: The package includes a postinstall script that automatically fixes SDK import paths. This ensures that the package works correctly when installed globally or used via npx. If you encounter any SDK import path issues, see the [Troubleshooting](#troubleshooting) section.
+
+## Quick Start
+
+### Analyze a code file:
+
+```bash
+npx vsc-remote analyze-code src/index.js
+```
+
+### Search for patterns in code:
+
+```bash
+npx vsc-remote search-code "function" --directory src --file-pattern "*.js"
+```
+
+### Deploy a VSCode instance:
+
+```bash
+npx vsc-remote deploy-vscode-instance --name my-instance --workspace-path /path/to/workspace
+```
+
+### Start an MCP server:
+
+```bash
+npx vsc-remote start --mode websocket --port 3001
+```
+
+## CLI Usage
+
+The vsc-remote CLI provides a set of commands for various operations. Use `--help` with any command to see detailed usage information:
+
+```bash
+npx vsc-remote --help
+npx vsc-remote <command> --help
+```
+
+### Server Commands
+
+#### Start the MCP Server
+
+```bash
+# Start in stdio mode (default)
+npx vsc-remote start
+
+# Start in WebSocket mode
+npx vsc-remote start --mode websocket --port 3001
+
+# Start with debug logging
+npx vsc-remote start --debug
+
+# Start with a specific authentication token
+npx vsc-remote start --mode websocket --port 3001 --token your-secure-token
+
+# Generate a new authentication token
+npx vsc-remote start --mode websocket --port 3001 --generate-token
+```
+
+### Code Analysis Commands
+
+#### Analyze Code
+
+Analyze code files and provide insights about their structure, complexity, and potential issues.
+
+```bash
+# Basic usage
+npx vsc-remote analyze-code src/index.js
+
+# Disable specific analysis features
+npx vsc-remote analyze-code src/index.js --no-metrics
+npx vsc-remote analyze-code src/index.js --no-structure
+npx vsc-remote analyze-code src/index.js --no-issues
+```
+
+Example output:
+
+```json
+{
+  "file_path": "src/index.js",
+  "metrics": {
+    "complexity": 5,
+    "maintainability": 75,
+    "loc": 120,
+    "comments": 15
+  },
+  "structure": {
+    "functions": [
+      {
+        "name": "main",
+        "start_line": 10,
+        "end_line": 20,
+        "parameters": ["arg1", "arg2"]
       }
-      
-      logger.info(`Loaded ${this.migrationPlans.size} migration plans`);
-    } catch (error) {
-      logger.error('Failed to load migration plans', error as Record<string, any>);
-    }
-  }
-  
-  /**
-   * Save migration plan to storage
-   * @param plan Migration plan
-   */
-  private saveMigrationPlan(plan: MigrationPlan): void {
-    try {
-      const filePath = path.join(this.storageDir, `${plan.id}.json`);
-      fs.writeFileSync(filePath, JSON.stringify(plan, null, 2), 'utf8');
-      logger.debug(`Saved migration plan ${plan.id} to ${filePath}`);
-    } catch (error) {
-      logger.error(`Failed to save migration plan ${plan.id}`, error as Record<string, any>);
-    }
-  }
-  
-  /**
-   * Resume in-progress migrations
-   */
-  private async resumeMigrations(): Promise<void> {
-    try {
-      logger.info('Resuming in-progress migrations');
-      
-      // Find in-progress migrations
-      const inProgressPlans = Array.from(this.migrationPlans.values())
-        .filter(plan => plan.status === MigrationStatus.IN_PROGRESS);
-      
-      logger.info(`Found ${inProgressPlans.length} in-progress migrations`);
-      
-      // Resume each migration
-      for (const plan of inProgressPlans) {
-        try {
-          // Check if plan has expired
-          if (plan.expiresAt < new Date()) {
-            logger.warn(`Migration plan ${plan.id} has expired, marking as timed out`);
-            
-            // Mark as timed out
-            plan.status = MigrationStatus.TIMED_OUT;
-            this.saveMigrationPlan(plan);
-            continue;
-          }
-          
-          // Resume migration
-          logger.info(`Resuming migration ${plan.id}`);
-          this.executeMigration(plan);
-        } catch (error) {
-          logger.error(`Failed to resume migration ${plan.id}`, error as Record<string, any>);
-        }
+    ],
+    "classes": [
+      {
+        "name": "MyClass",
+        "start_line": 25,
+        "end_line": 50,
+        "methods": ["method1", "method2"]
       }
-    } catch (error) {
-      logger.error('Failed to resume migrations', error as Record<string, any>);
+    ]
+  },
+  "issues": [
+    {
+      "type": "unused-variable",
+      "message": "Variable 'temp' is defined but never used",
+      "line": 15,
+      "column": 10,
+      "severity": "warning"
     }
-  }
-  
-  /**
-   * Create a migration plan
-   * @param sourceInstanceId Source instance ID
-   * @param targetProviderType Target provider type
-   * @param options Migration options
-   * @returns Migration plan
-   */
-  public async createMigrationPlan(
-    sourceInstanceId: string,
-    targetProviderType: ProviderType,
-    options?: MigrationOptions
-  ): Promise<MigrationPlan> {
-    try {
-      logger.info(`Creating migration plan for instance ${sourceInstanceId} to provider ${targetProviderType}`);
-      
-      // Get source instance
-      const sourceInstance = this.registry.getInstance(sourceInstanceId);
-      
-      if (!sourceInstance) {
-        throw new Error(`Source instance ${sourceInstanceId} not found`);
+  ]
+}
+```
+
+#### Search Code
+
+Search for patterns in code files and return matching results with context.
+
+```bash
+# Basic search
+npx vsc-remote search-code "function"
+
+# Advanced search with options
+npx vsc-remote search-code "function" --directory src --file-pattern "*.js" --context-lines 3
+
+# Case-insensitive search
+npx vsc-remote search-code "error" --ignore-case
+
+# Literal string search (no regex)
+npx vsc-remote search-code "function()" --no-regex
+```
+
+Example output:
+
+```json
+{
+  "matches": [
+    {
+      "file": "src/index.js",
+      "line": 10,
+      "column": 1,
+      "match": "function main() {",
+      "context": {
+        "before": [
+          "// Main entry point",
+          "// Initialize application"
+        ],
+        "line": "function main() {",
+        "after": [
+          "  console.log('Starting application');",
+          "  init();",
+          "  run();"
+        ]
       }
-      
-      // Get source provider
-      const sourceProvider = this.providers.get(sourceInstance.providerType);
-      
-      if (!sourceProvider) {
-        throw new Error(`Source provider ${sourceInstance.providerType} not found`);
-      }
-      
-      // Get target provider
-      const targetProvider = this.providers.get(targetProviderType);
-      
-      if (!targetProvider) {
-        throw new Error(`Target provider ${targetProviderType} not found`);
-      }
-      
-      // Create migration plan
-      const plan: MigrationPlan = {
-        id: `migration-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        sourceInstanceId,
-        sourceProviderType: sourceInstance.providerType,
-        targetProviderType,
-        strategy: options?.strategy || this.config.migration.defaultStrategy,
-        keepSource: options?.keepSource ?? false,
-        startTarget: options?.startTarget ?? true,
-        timeoutSeconds: options?.timeoutSeconds || Math.floor(this.config.migration.timeoutMs / 1000),
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + (options?.timeoutSeconds || Math.floor(this.config.migration.timeoutMs / 1000)) * 1000),
-        steps: this.createMigrationSteps(sourceInstance.providerType, targetProviderType),
-        currentStepIndex: 0,
-        status: MigrationStatus.PENDING
-      };
-      
-      // Save plan
-      this.migrationPlans.set(plan.id, plan);
-      this.saveMigrationPlan(plan);
-      
-      logger.info(`Created migration plan ${plan.id}`);
-      
-      return plan;
-    } catch (error) {
-      logger.error(`Failed to create migration plan for instance ${sourceInstanceId}`, error as Record<string, any>);
-      throw error;
     }
+  ],
+  "total_matches": 1,
+  "files_searched": 5
+}
+```
+
+### Code Modification Commands
+
+#### Modify Code
+
+Modify code files with various operations like adding, updating, or removing code segments.
+
+```bash
+# Add a comment at line 10
+npx vsc-remote modify-code src/index.js --operation add --position 10 --content "// New code here"
+
+# Update a function name
+npx vsc-remote modify-code src/index.js --operation update --pattern "oldFunction" --content "newFunction"
+
+# Remove console.log statements
+npx vsc-remote modify-code src/index.js --operation remove --pattern "console.log"
+
+# Replace a block of code
+npx vsc-remote modify-code src/index.js --operation replace --range 10,20 --content "// New code block"
+```
+
+Example output:
+
+```json
+{
+  "success": true,
+  "file_path": "src/index.js",
+  "operation": "update",
+  "changes": {
+    "lines_affected": 1,
+    "original_content": "function oldFunction() {",
+    "new_content": "function newFunction() {"
   }
+}
+```
+
+### VSCode Instance Management
+
+#### Deploy VSCode Instance
+
+Deploy a new VSCode instance using Docker. Each instance provides a web-based VSCode UI accessible via browser with secure login credentials.
+
+```bash
+# Basic deployment
+npx vsc-remote deploy-vscode-instance --name my-instance --workspace-path /path/to/workspace
+
+# Deployment with custom settings and specific password
+npx vsc-remote deploy-vscode-instance --name my-instance --workspace-path /path/to/workspace --port 8080 --password mypassword --cpu 2 --memory 4Gi
+```
+
+Example output:
+
+```json
+{
+  "instance_id": "vscode-instance-abc123",
+  "name": "my-instance",
+  "status": "running",
+  "url": "http://localhost:8080",
+  "port": 8080,
+  "password": "mypassword",
+  "workspace_path": "/path/to/workspace",
+  "resources": {
+    "cpu": "2",
+    "memory": "4Gi",
+    "disk": "10Gi"
+  },
+  "created_at": "2025-04-26T22:30:00Z",
+  "container_id": "container-xyz789"
+}
+```
+
+After deployment, access the VSCode UI by navigating to the URL in your browser (e.g., http://localhost:8080) and entering the password you specified. If no password is provided, a secure random password will be generated and displayed in the output.
+
+#### VSCode Swarm Management
+
+Deploy and manage multiple VSCode instances as a coordinated swarm for team development or distributed workloads.
+
+```bash
+# Deploy multiple instances as a swarm
+for i in {1..5}; do
+  npx vsc-remote deploy-vscode-instance --name "swarm-node-$i" --workspace-path /path/to/workspace --port $((8080 + $i))
+done
+
+# List all swarm instances
+npx vsc-remote list-vscode-instances --filter "swarm-node"
+
+# Stop all swarm instances
+npx vsc-remote list-vscode-instances --filter "swarm-node" --format json | jq -r '.instances[].name' | xargs -I{} npx vsc-remote stop-vscode-instance --name {}
+```
+
+#### List VSCode Instances
+
+List all deployed VSCode instances and their status.
+
+```bash
+# List all instances
+npx vsc-remote list-vscode-instances
+
+# List only running instances
+npx vsc-remote list-vscode-instances --status running
+
+# Get JSON output
+npx vsc-remote list-vscode-instances --format json
+```
+
+Example output:
+
+```
+┌─────────────────────┬────────────┬─────────────────────┬───────┬─────────────────────────┐
+│ Name                │ Status     │ URL                 │ Port  │ Created                 │
+├─────────────────────┼────────────┼─────────────────────┼───────┼─────────────────────────┤
+│ my-instance         │ running    │ http://localhost:8080 │ 8080  │ 2025-04-26 22:30:00    │
+│ test-instance       │ stopped    │ http://localhost:8081 │ 8081  │ 2025-04-25 10:15:00    │
+└─────────────────────┴────────────┴─────────────────────┴───────┴─────────────────────────┘
+```
+
+#### Stop VSCode Instance
+
+Stop a running VSCode instance.
+
+```bash
+# Stop an instance
+npx vsc-remote stop-vscode-instance --name my-instance
+
+# Force stop an instance
+npx vsc-remote stop-vscode-instance --name my-instance --force
+```
+
+Example output:
+
+```json
+{
+  "success": true,
+  "instance_id": "vscode-instance-abc123",
+  "name": "my-instance",
+  "status": "stopped",
+  "stopped_at": "2025-04-26T23:15:00Z"
+}
+```
+
+### Resource Management
+
+#### Manage Job Resources
+
+Manage resources for VSCode instances and associated jobs.
+
+```bash
+# Check job status
+npx vsc-remote manage-job-resources job-123 --operation status
+
+# Update resource limits
+npx vsc-remote manage-job-resources job-123 --operation update --cpu 2 --memory 4Gi
+
+# Pause a job
+npx vsc-remote manage-job-resources job-123 --operation pause
+
+# Resume a job
+npx vsc-remote manage-job-resources job-123 --operation resume
+```
+
+Example output:
+
+```json
+{
+  "job_id": "job-123",
+  "status": "running",
+  "resources": {
+    "cpu": "2",
+    "memory": "4Gi",
+    "disk": "10Gi",
+    "cpu_usage": 45,
+    "memory_usage": 60,
+    "disk_usage": 30
+  },
+  "started_at": "2025-04-26T20:00:00Z",
+  "last_updated": "2025-04-26T23:30:00Z"
+}
+```
+
+## MCP Server Usage
+
+You can use this package as an MCP server for integration with AI assistants:
+
+```bash
+# Start the server in stdio mode (default)
+npx vsc-remote start
+
+# Start the server in WebSocket mode
+npx vsc-remote start --mode websocket --port 3001
+```
+
+### Connecting to the MCP Server
+
+For stdio mode, use standard input/output to communicate with the server.
+
+For WebSocket mode, connect to `ws://localhost:3001?token=your-auth-token` (or the specified port).
+
+### MCP Protocol
+
+The MCP server implements the Model Context Protocol (MCP), which allows AI assistants to interact with the server using a standardized message format. See the [API documentation](docs/API.md) for details on the protocol.
+
+## Security Features
+
+The vsc-remote package includes several security features to protect your system and data:
+
+### Authentication
+
+WebSocket mode includes token-based authentication to prevent unauthorized access:
+
+- Secure random token generation using cryptographically strong methods
+- Token storage in a secure file with appropriate permissions
+- Token validation for all WebSocket connections
+- Options to provide your own token or generate a new one
+
+Example usage:
+
+```bash
+# Start with a specific authentication token
+npx vsc-remote start --mode websocket --port 3001 --token your-secure-token
+
+# Generate a new authentication token
+npx vsc-remote start --mode websocket --port 3001 --generate-token
+```
+
+To connect to a secure WebSocket server:
+
+```javascript
+const ws = new WebSocket('ws://localhost:3001?token=your-auth-token');
+```
+
+### Command Injection Protection
+
+All commands that interact with the system are protected against command injection:
+
+- Strict input validation and sanitization
+- Parameter escaping for shell commands
+- Use of safe execution methods that prevent shell injection
+- Validation of file paths to prevent directory traversal
+
+### Secure Password Handling
+
+For VSCode instance deployment:
+
+- Passwords are never stored in plain text
+- Secure password generation with strong entropy
+- Password strength validation
+- Secure transmission of credentials
+
+### Input Validation
+
+All user inputs are validated:
+
+- File path validation to prevent directory traversal
+- Regex pattern validation to prevent ReDoS attacks
+- Parameter type checking and sanitization
+- Strict schema validation for all tool inputs
+
+## Programmatic Usage
+
+You can use vsc-remote programmatically in your Node.js applications:
+
+```javascript
+const { createServer, tools } = require('vsc-remote');
+
+// Create and start an MCP server
+async function startServer() {
+  const server = await createServer({
+    mode: 'websocket',
+    port: 3001,
+    debug: true,
+    // Authentication options
+    token: 'your-secure-token', // Optional: provide a specific token
+    generateToken: true // Optional: generate a new token
+  });
   
-  /**
-   * Create migration steps based on source and target provider types
-   * @param sourceProviderType Source provider type
-   * @param targetProviderType Target provider type
-   * @returns Array of migration steps
-   */
-  private createMigrationSteps(
-    sourceProviderType: ProviderType,
-    targetProviderType: ProviderType
-  ): MigrationStep[] {
-    const steps: MigrationStep[] = [];
-    
-    // Common steps for all migrations
-    steps.push({
-      name: 'prepare',
-      description: 'Prepare for migration',
-      status: MigrationStepStatus.PENDING
+  console.log('Server started on port 3001');
+  console.log(`Authentication token: ${server.authToken}`);
+  
+  // Handle graceful shutdown
+  process.on('SIGINT', async () => {
+    await server.shutdown();
+    process.exit(0);
+  });
+  
+  return server;
+}
+
+// Connect to a WebSocket MCP server with authentication
+function connectToServer(token) {
+  const ws = new WebSocket(`ws://localhost:3001?token=${token}`);
+  
+  ws.on('open', () => {
+    console.log('Connected to MCP server');
+    // Send messages, etc.
+  });
+  
+  ws.on('error', (error) => {
+    console.error('Connection error:', error);
+  });
+  
+  return ws;
+}
+
+// Use tools directly
+async function analyzeCode() {
+  try {
+    const result = await tools.analyze_code({
+      file_path: 'src/index.js',
+      include_metrics: true,
+      include_structure: true,
+      include_issues: true
     });
     
-    steps.push({
-      name: 'validate_source',
-      description: 'Validate source instance',
-      status: MigrationStepStatus.PENDING
+    console.log('Code complexity:', result.metrics.complexity);
+    console.log('Functions:', result.structure.functions.length);
+    console.log('Issues:', result.issues.length);
+    
+    return result;
+  } catch (error) {
+    console.error('Analysis failed:', error);
+    throw error;
+  }
+}
+
+// Search for code patterns
+async function searchCode() {
+  try {
+    const result = await tools.search_code({
+      pattern: 'function',
+      directory: 'src',
+      file_pattern: '*.js',
+      context_lines: 3
     });
     
-    steps.push({
-      name: 'validate_target_provider',
-      description: 'Validate target provider',
-      status: MigrationStepStatus.PENDING
-    });
+    console.log(`Found ${result.total_matches} matches in ${result.files_searched} files`);
     
-    // Add steps based on migration strategy
-    if (this.config.migration.defaultStrategy === MigrationStrategy.STOP_AND_RECREATE) {
-      steps.push({
-        name: 'stop_source',
-        description: 'Stop source instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'export_source_config',
-        description: 'Export source instance configuration',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'create_target',
-        description: 'Create target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'start_target',
-        description: 'Start target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'verify_target',
-        description: 'Verify target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'cleanup_source',
-        description: 'Clean up source instance',
-        status: MigrationStepStatus.PENDING
-      });
-    } else if (this.config.migration.defaultStrategy === MigrationStrategy.CREATE_THEN_STOP) {
-      steps.push({
-        name: 'export_source_config',
-        description: 'Export source instance configuration',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'create_target',
-        description: 'Create target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'start_target',
-        description: 'Start target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'verify_target',
-        description: 'Verify target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'stop_source',
-        description: 'Stop source instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'cleanup_source',
-        description: 'Clean up source instance',
-        status: MigrationStepStatus.PENDING
-      });
-    } else if (this.config.migration.defaultStrategy === MigrationStrategy.EXPORT_IMPORT) {
-      steps.push({
-        name: 'stop_source',
-        description: 'Stop source instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'export_source',
-        description: 'Export source instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'create_target',
-        description: 'Create target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'import_to_target',
-        description: 'Import to target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'start_target',
-        description: 'Start target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'verify_target',
-        description: 'Verify target instance',
-        status: MigrationStepStatus.PENDING
-      });
-      
-      steps.push({
-        name: 'cleanup_source',
-        description: 'Clean up source instance',
-        status: MigrationStepStatus.PENDING
-      });
-    }
-    
-    // Final step for all migrations
-    steps.push({
-      name: 'complete',
-      description: 'Complete migration',
-      status: MigrationStepStatus.PENDING
-    });
-    
-    return steps;
+    return result;
+  } catch (error) {
+    console.error('Search failed:', error);
+    throw error;
   }
-  
-  /**
-   * Start a migration
-   * @param migrationId Migration ID
-   * @returns Migration result
-   */
-  public async startMigration(migrationId: string): Promise<MigrationResult> {
-    try {
-      logger.info(`Starting migration ${migrationId}`);
-      
-      // Get migration plan
-      const plan = this.migrationPlans.get(migrationId);
-      
-      if (!plan) {
-        throw new Error(`Migration plan ${migrationId} not found`);
-      }
-      
-      // Check if migration is already in progress
-      if (plan.status === MigrationStatus.IN_PROGRESS) {
-        throw new Error(`Migration ${migrationId} is already in progress`);
-      }
-      
-      // Check if migration is already completed
-      if (plan.status === MigrationStatus.COMPLETED) {
-        throw new Error(`Migration ${migrationId} is already completed`);
-      }
-      
-      // Check if migration is already failed
-      if (plan.status === MigrationStatus.FAILED) {
-        throw new Error(`Migration ${migrationId} has already failed`);
-      }
-      
-      // Check if migration is already cancelled
-      if (plan.status === MigrationStatus.CANCELLED) {
-        throw new Error(`Migration ${migrationId} has been cancelled`);
-      }
-      
-      // Check if migration is already timed out
-      if (plan.status === MigrationStatus.TIMED_OUT) {
-        throw new Error(`Migration ${migrationId} has timed out`);
-      }
-      
-      // Update status
-      plan.status = MigrationStatus.IN_PROGRESS;
-      this.saveMigrationPlan(plan);
-      
-      // Execute migration
-      return this.executeMigration(plan);
-    } catch (error) {
-      logger.error(`Failed to start migration ${migrationId}`, error as Record<string, any>);
-      
-      // Create failed result
-      const result: MigrationResult = {
-        plan: this.migrationPlans.get(migrationId) || {
-          id: migrationId,
-          sourceInstanceId: '',
-          sourceProviderType: ProviderType.UNKNOWN,
-          targetProviderType: ProviderType.UNKNOWN,
-          strategy: MigrationStrategy.STOP_AND_RECREATE,
-          keepSource: false,
-          startTarget: true,
-          timeoutSeconds: 300,
-          createdAt: new Date(),
-          expiresAt: new Date(),
-          steps: [],
-          currentStepIndex: 0,
-          status: MigrationStatus.FAILED
-        },
-        success: false,
-        error: `Failed to start migration: ${error}`
-      };
-      
-      return result;
-    }
-  }
-  
-  /**
-   * Execute a migration
-   * @param plan Migration plan
-   * @returns Migration result
-   */
-  private async executeMigration(plan: MigrationPlan): Promise<MigrationResult> {
-    try {
-      logger.info(`Executing migration ${plan.id}`);
-      
-      // Set timeout
-      const timeoutId = setTimeout(() => {
-        this.handleMigrationTimeout(plan.id);
-      }, plan.timeoutSeconds * 1000);
-      
-      this.migrationTimeouts.set(plan.id, timeoutId);
-      
-      // Execute steps
-      for (let i = plan.currentStepIndex; i < plan.steps.length; i++) {
-        // Update current step index
-        plan.currentStepIndex = i;
-        this.saveMigrationPlan(plan);
-        
-        // Get current step
-        const step = plan.steps[i];
-        
-        // Skip completed steps
-        if (step.status === MigrationStepStatus.COMPLETED) {
-          continue;
-        }
-        
-        // Execute step
-        try {
-          logger.info(`Executing migration step ${step.name} for migration ${plan.id}`);
-          
-          // Update step status
-          step.status = MigrationStepStatus.IN_PROGRESS;
-          step.startedAt = new Date();
-          this.saveMigrationPlan(plan);
-          
-          // Execute step
-          await this.executeStep(plan, step);
-          
-          // Update step status
-          step.status = MigrationStepStatus.COMPLETED;
-          step.completedAt = new Date();
-          this.saveMigrationPlan(plan);
-          
-          logger.info(`Completed migration step ${step.name} for migration ${plan.id}`);
-        } catch (error) {
-          logger.error(`Failed to execute migration step ${step.name} for migration ${plan.id}`, error as Record<string, any>);
-          
-          // Update step status
-          step.status = MigrationStepStatus.FAILED;
-          step.error = `${error}`;
-          this.saveMigrationPlan(plan);
-          
-          // Update migration status
-          plan.status = MigrationStatus.FAILED;
-          plan.error = `Failed to execute step ${step.name}: ${error}`;
-          this.saveMigrationPlan(plan);
-          
-          // Clear timeout
-          this.clearMigrationTimeout(plan.id);
-          
-          // Return failed result
-          return {
-            plan,
-            success: false,
-            error: `Failed to execute step ${step.name}: ${error}`
-          };
-        }
-      }
-      
-      // Update migration status
-      plan.status = MigrationStatus.COMPLETED;
-      plan.completedAt = new Date();
-      this.saveMigrationPlan(plan);
-      
-      // Clear timeout
-      this.clearMigrationTimeout(plan.id);
-      
-      // Get target instance
-      let targetInstance: VSCodeInstance | null = null;
-      
-      if (plan.targetInstanceId) {
-        targetInstance = this.registry.getInstance(plan.targetInstanceId);
-      }
-      
-      logger.info(`Completed migration ${plan.id}`);
-      
-      // Return success result
-      return {
-        plan,
-        success: true,
-        targetInstance: targetInstance || undefined
-      };
-    } catch (error) {
-      logger.error(`Failed to execute migration ${plan.id}`, error as Record<string, any>);
-      
-      // Update migration status
-      plan.status = MigrationStatus.FAILED;
-      plan.error = `Failed to execute migration: ${error}`;
-      this.saveMigrationPlan(plan);
-      
-      // Clear timeout
-      this.clearMigrationTimeout(plan.id);
-      
-      // Return failed result
-      return {
-        plan,
-        success: false,
-        error: `Failed to execute migration: ${error}`
-      };
-    }
-  }
-  
-  /**
-   * Execute a migration step
-   * @param plan Migration plan
-   * @param step Migration step
-   */
-  private async executeStep(plan: MigrationPlan, step: MigrationStep): Promise<void> {
-    // Get source instance
-    const sourceInstance = this.registry.getInstance(plan.sourceInstanceId);
-    
-    if (!sourceInstance) {
-      throw new Error(`Source instance ${plan.sourceInstanceId} not found`);
-    }
-    
-    // Get source provider
-    const sourceProvider = this.providers.get(sourceInstance.providerType);
-    
-    if (!sourceProvider) {
-      throw new Error(`Source provider ${sourceInstance.providerType} not found`);
-    }
-    
-    // Get target provider
-    const targetProvider = this.providers.get(plan.targetProviderType);
-    
-    if (!targetProvider) {
-      throw new Error(`Target provider ${plan.targetProviderType} not found`);
-    }
-    
-    // Execute step based on name
-    switch (step.name) {
-      case 'prepare':
-        // Nothing to do here
-        break;
-        
-      case 'validate_source':
-        // Check if source instance exists
-        const sourceExists = await sourceProvider.getInstance(plan.sourceInstanceId);
-        
-        if (!sourceExists) {
-          throw new Error(`Source instance ${plan.sourceInstanceId} not found in provider ${sourceInstance.providerType}`);
-        }
-        break;
-        
-      case 'validate_target_provider':
-        // Check if target provider is available
-        const targetCapabilities = targetProvider.getCapabilities();
-        
-        if (!targetCapabilities.canCreateInstances) {
-          throw new Error(`Target provider ${plan.targetProviderType} cannot create instances`);
-        }
-        break;
-        
-      case 'stop_source':
-        // Stop source instance
-        if (sourceInstance.status === InstanceStatus.RUNNING) {
-          await sourceProvider.stopInstance(plan.sourceInstanceId);
-        }
-        break;
-        
-      case 'export_source_config':
-        // Nothing to do here, we already have the config
-        break;
-        
-      case 'export_source':
-        // This would be provider-specific
-        // For now, we'll just use the instance config
-        break;
-        
-      case 'create_target':
-        // Create target instance
-        const targetConfig: InstanceConfig = {
-          name: `${sourceInstance.name}-migrated`,
-          image: sourceInstance.config.image,
-          workspacePath: sourceInstance.config.workspacePath,
-          resources: sourceInstance.config.resources,
-          network: sourceInstance.config.network,
-          env: sourceInstance.config.env,
-          extensions: sourceInstance.config.extensions,
-          auth: sourceInstance.config.auth
-        };
-        
-        const targetInstance = await targetProvider.createInstance(targetConfig);
-        
-        // Update plan with target instance ID
-        plan.targetInstanceId = targetInstance.id;
-        this.saveMigrationPlan(plan);
-        
-        // Register target instance
-        this.registry.registerInstance(targetInstance);
-        break;
-        
-      case 'import_to_target':
-        // This would be provider-specific
-        // For now, we'll just assume the instance was created with the right config
-        break;
-        
-      case 'start_target':
-        // Start target instance if needed
-        if (plan.startTarget && plan.targetInstanceId) {
-          const targetInstance = this.registry.getInstance(plan.targetInstanceId);
-          
-          if (targetInstance && targetInstance.status !== InstanceStatus.RUNNING) {
-            await targetProvider.startInstance(plan.targetInstanceId);
-          }
-        }
-        break;
-        
-      case 'verify_target':
-        // Verify target instance exists
-        if (!plan.targetInstanceId) {
-          throw new Error('Target instance ID not set');
-        }
-        
-        const targetExists = await targetProvider.getInstance(plan.targetInstanceId);
-        
-        if (!targetExists) {
-          throw new Error(`Target instance ${plan.targetInstanceId} not found in provider ${plan.targetProviderType}`);
-        }
-        
-        // Verify target instance is running if needed
-        if (plan.startTarget) {
-          if (targetExists.status !== InstanceStatus.RUNNING) {
-            throw new Error(`Target instance ${plan.targetInstanceId} is not running`);
-          }
-        }
-        break;
-        
-      case 'cleanup_source':
-        // Delete source instance if needed
-        if (!plan.keepSource) {
-          await sourceProvider.deleteInstance(plan.sourceInstanceId);
-          
-          // Remove from registry
-          this.registry.removeInstance(plan.sourceInstanceId);
-        }
-        break;
-        
-      case 'complete':
-        // Nothing to do here
-        break;
-        
-      default:
-        logger.warn(`Unknown migration step: ${step.name}`);
-        break;
-    }
-  }
-  
-  /**
-   * Handle migration timeout
-   * @param migrationId Migration ID
-   */
-  private handleMigrationTimeout(migrationId: string): void {
-    try {
-      logger.warn(`Migration ${migrationId} timed out`);
-      
-      // Get migration plan
-      const plan = this.migrationPlans.get(migrationId);
-      
-      if (!plan) {
-        logger.warn(`Migration plan ${migrationId} not found for timeout handling`);
-        return;
-      }
-      
-      // Update migration status
-      plan.status = MigrationStatus.TIMED_OUT;
-      plan.error = 'Migration timed out';
-      this.saveMigrationPlan(plan);
-      
-      // Clear timeout
-      this.clearMigrationTimeout(migrationId);
-    } catch (error) {
-      logger.error(`Failed to handle migration timeout for ${migrationId}`, error as Record<string, any>);
-    }
-  }
-  
-  /**
-   * Clear migration timeout
-   * @param migrationId Migration ID
-   */
-  private clearMigrationTimeout(migrationId: string): void {
-    const timeoutId = this.migrationTimeouts.get(migrationId);
-    
-    if (timeoutId) {
-      clearTimeout(timeoutId);
+}
+```
+
+See the [API documentation](docs/API.md) for detailed information on the programmatic API.
+
+## Environment Variables
+
+You can configure the behavior using environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MCP_DEBUG` | Enable debug mode (1 = enabled, 0 = disabled) | `0` |
+| `MCP_MODE` | Server mode (stdio or websocket) | `stdio` |
+| `MCP_PORT` | Port for WebSocket mode | `3001` |
+| `MCP_LOG_LEVEL` | Log level (error, warn, info, debug) | `info` |
+| `MCP_AUTH_TOKEN` | Authentication token for WebSocket mode | Auto-generated |
+| `MCP_GENERATE_NEW_TOKEN` | Force generation of a new token (1 = enabled) | `0` |
+| `MCP_VSCODE_INSTANCES_DIR` | Directory for VSCode instance configurations | `./vscode-instances` |
+| `MCP_VSCODE_DOCKER_IMAGE` | Docker image for VSCode instances | `codercom/code-server:latest` |
+| `MCP_DEFAULT_CPU_LIMIT` | Default CPU limit for VSCode instances | `1` |
+| `MCP_DEFAULT_MEMORY_LIMIT` | Default memory limit for VSCode instances | `2Gi` |
+| `MCP_DEFAULT_DISK_LIMIT` | Default disk limit for VSCode instances | `5Gi` |
+| `MCP_MIN_PASSWORD_LENGTH` | Minimum password length for VSCode instances | `12` |
+| `MCP_PASSWORD_COMPLEXITY` | Password complexity level (low, medium, high) | `medium` |
+| `MCP_AUTO_GENERATE_PASSWORD` | Auto-generate secure passwords (1 = enabled, 0 = disabled) | `1` |
+| `MCP_SWARM_PREFIX` | Default prefix for swarm instance names | `swarm-node` |
+| `MCP_MAX_SWARM_SIZE` | Maximum number of instances in a swarm | `10` |
+| `MCP_REQUEST_TIMEOUT` | Timeout for MCP requests in milliseconds | `60000` |
+| `MCP_CONNECTION_TIMEOUT` | Timeout for MCP connections in milliseconds | `300000` |
+| `MCP_KEEPALIVE_INTERVAL` | Interval for MCP keep-alive messages in milliseconds | `30000` |
+
+## Troubleshooting
+
+### Common Issues
+
+#### SDK Import Path Issues
+
+If you encounter errors related to missing SDK modules or import paths:
+
+1. The package includes a postinstall script that automatically fixes SDK import paths
+2. The package also includes fallback implementations that will be used if the SDK cannot be imported
+3. You may see warning messages about failed imports, but the package will continue to function using the fallback implementations
+4. If you want to use the actual SDK implementation, try reinstalling the package with `npm install -g vsc-remote`
+5. For manual fixes, update import statements to use specific paths:
+   ```javascript
+   // Change this:
+   const { Server } = require('@modelcontextprotocol/sdk');
+   
+   // To this:
+   const { Server } = require('@modelcontextprotocol/sdk/dist/cjs/server');
+   ```
+
+> **Note**: When using the fallback implementations, some advanced features may not be available, but all basic functionality will work correctly.
+
+#### Connection Refused
+
+If you get a "Connection refused" error when using WebSocket mode:
+
+1. Check if the port is already in use
+2. Verify firewall settings
+3. Ensure the server is running
+
+#### Connection Closed
+
+If you encounter a "MCP error -32000: Connection closed" error:
+
+1. Use the latest version of the package which includes fixes for persistent connections
+2. Try increasing the request timeout with `--request-timeout 120000` (2 minutes)
+3. Use the `--connection-timeout` and `--keep-alive-interval` options to adjust connection parameters
+4. Ensure the server process stays alive by using the start command directly
+
+Example with increased timeouts:
+```bash
+npx vsc-remote start --request-timeout 120000 --connection-timeout 300000 --keep-alive-interval 30000
+```
+
+#### Authentication Failed
+
+If you get an "Authentication failed" error when connecting to the WebSocket server:
+
+1. Ensure you're including the token in the URL: `ws://localhost:3001?token=your-auth-token`
+2. Verify that you're using the correct token
+3. Check if the token file exists at `~/.vsc-remote/auth-token`
+4. Try generating a new token with the `--generate-token` option
+
+#### Docker Issues
+
+If you encounter issues with VSCode instance deployment:
+
+1. Ensure Docker is installed and running
+2. Check if you have sufficient permissions
+3. Verify that the workspace path exists and is accessible
+
+#### Password Validation Errors
+
+If you get password validation errors when deploying VSCode instances:
+
+1. Ensure your password meets the minimum length requirement (default: 12 characters)
+2. Include a mix of uppercase, lowercase, numbers, and special characters
+3. Avoid common passwords or dictionary words
+
+### Enabling Debug Mode
+
+To enable detailed logging:
+
+```bash
+export MCP_DEBUG=1
+export MCP_LOG_LEVEL=debug
+npx vsc-remote start
+```
+
+## Documentation
+
+- [CLI Usage Documentation](docs/CLI-USAGE.md): Detailed CLI command documentation
+- [API Documentation](docs/API.md): Programmatic API documentation
+- [Contributing Guide](docs/CONTRIBUTING.md): Guidelines for contributing to the project
+
+## Contributing
+
+Contributions are welcome! Please see the [Contributing Guide](docs/CONTRIBUTING.md) for details on how to contribute to this project.
+
+## License
+
+MIT
